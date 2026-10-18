@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { defineAsyncComponent, ref } from 'vue'
 import WavePlayground from './components/WavePlayground.vue'
 import portrait144 from './assets/teun-144.webp?no-inline'
 import portrait256 from './assets/teun-256.webp?no-inline'
 import portrait352 from './assets/teun-352.webp?no-inline'
 import portrait512 from './assets/teun-512.webp?no-inline'
 
-const isDark = ref(document.documentElement.classList.contains('dark'))
+const props = withDefaults(defineProps<{ page?: 'home' | 'signal-processing' }>(), { page: 'home' })
+const SignalProcessing = defineAsyncComponent(() => import('./components/SignalProcessing.vue'))
 
-document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark.value ? '#0a0a0a' : '#e0e4e1')
+const isDark = ref(typeof document === 'undefined' || document.documentElement.classList.contains('dark'))
+
+if (typeof document !== 'undefined') {
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark.value ? '#0a0a0a' : '#e0e4e1')
+}
 
 function toggleTheme() {
   isDark.value = !isDark.value
@@ -34,8 +39,9 @@ const personalLinks = [
       class="sticky top-0 z-20 w-full border-b border-line bg-surface/90 backdrop-blur"
     >
       <div class="mx-auto flex w-[min(1080px,calc(100%-1rem))] items-center justify-between gap-2 pb-1 pt-[5px] sm:w-[min(1080px,calc(100%-2rem))]">
-        <a href="#home" class="flex min-h-11 min-w-0 items-center rounded-sm px-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-500">
-          <h1 class="truncate text-base font-semibold">Teun M.</h1>
+        <a :href="props.page === 'home' ? '#home' : '/'" class="flex min-h-11 min-w-0 items-center rounded-sm px-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-500">
+          <h1 v-if="props.page === 'home'" class="truncate text-base font-semibold">Teun M.</h1>
+          <span v-else class="truncate text-base font-semibold">Teun M.</span>
         </a>
 
         <div class="-mr-1 ml-auto flex items-center gap-2">
@@ -59,6 +65,7 @@ const personalLinks = [
     </header>
 
     <main class="mx-auto flex w-[min(1080px,calc(100%-1rem))] flex-1 flex-col gap-4 py-4 sm:w-[min(1080px,calc(100%-2rem))]">
+      <template v-if="props.page === 'home'">
       <section id="home" class="scroll-mt-24">
         <div class="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-4 rounded-xl border border-line bg-surface p-5 shadow-[0_1px_2px_#26352b08] sm:grid-cols-[8rem_minmax(0,1fr)] lg:grid-cols-[11rem_minmax(0,1fr)]">
           <img
@@ -80,11 +87,12 @@ const personalLinks = [
             </h2>
           </div>
           <p class="col-span-2 max-w-2xl text-base leading-7 text-ink sm:col-span-1 sm:col-start-2 sm:text-lg">
-            MSc student at the University of Amsterdam, interested in all things tech, AI, language, signal processing and music.
+            Teun Mathijssen — MSc student at the University of Amsterdam, interested in all things tech, AI, language, signal processing and music.
           </p>
           <nav aria-label="Elsewhere" class="col-span-2 flex flex-wrap gap-x-4 gap-y-0 sm:col-span-1 sm:col-start-2">
             <a
               v-for="link in personalLinks"
+              rel="me"
               :key="link.label"
               :href="link.href"
               class="group inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-sm text-sm font-medium text-teal-800 hover:text-teal-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-600 dark:text-teal-300 dark:hover:text-teal-100 dark:focus-visible:outline-teal-300"
@@ -94,11 +102,14 @@ const personalLinks = [
                 <path d="M7 17 17 7M7 7h10v10" />
               </svg>
             </a>
+            <a href="/signal-processing/" class="inline-flex min-h-9 items-center rounded-sm text-sm font-medium text-teal-800 underline underline-offset-4 hover:text-teal-950 focus-visible:outline-2 focus-visible:outline-offset-4 dark:text-teal-300 dark:hover:text-teal-100">Signal processing notes</a>
           </nav>
         </div>
       </section>
 
       <WavePlayground :dark="isDark" />
+      </template>
+      <SignalProcessing v-else :dark="isDark" />
     </main>
   </div>
 </template>
