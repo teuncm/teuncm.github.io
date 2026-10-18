@@ -38,12 +38,12 @@ function amplitudeTarget(round: number) {
 
 function yTarget(round: number) {
   if (round % 3 === 2) return yTarget(round - 1)
-  return round % 3 === 0 ? 4 + Math.floor(randomAt(round, 4) * 2) : 8 + Math.floor(randomAt(round, 4) * 3)
+  return round % 3 === 0 ? 5 + Math.floor(randomAt(round, 4) * 2) : 9 + Math.floor(randomAt(round, 4) * 3)
 }
 
 function waveState(time: number) {
-  // Shorten all transitions by 10%, preserving their easing and marker timing.
-  const timeline = time / 0.9
+  // Use a shared clock to keep easing and marker timing synchronized.
+  const timeline = time / 0.86
   const round = Math.floor(timeline / 15)
   const local = timeline % 15
   const stages = ['frequency', 'phase', 'amplitude', 'y', 'chorus'] as const
@@ -70,7 +70,7 @@ function waveState(time: number) {
   const chorusPhase = stage === 'chorus' ? tau * eased : 0
   // Use the original signal at both endpoints, avoiding floating-point seam artifacts.
   const chorusOffset = stage === 'chorus' && progress > 0 && progress < 1 ? chorusPhase : 0
-  return { stage, frequency, phase, startPhase, amplitude, startAmplitude, ySteps,
+  return { stage, frequency, phase, amplitude, startAmplitude, ySteps,
     quantizeY, chorusPhase, chorusOffset, returningToSmooth: targetQuantization === 0, guideOpacity }
 }
 
@@ -87,7 +87,7 @@ function draw() {
   const bottom = height - 12
   const mid = (top + bottom) / 2
   const state = waveState(elapsed)
-  const { stage, frequency, phase, startPhase, amplitude: amplitudeRatio, startAmplitude, ySteps, quantizeY, chorusPhase, chorusOffset, returningToSmooth, guideOpacity } = state
+  const { stage, frequency, phase, amplitude: amplitudeRatio, startAmplitude, ySteps, quantizeY, chorusPhase, chorusOffset, returningToSmooth, guideOpacity } = state
   const drawKey = `${width},${height},${props.dark},${stage},${frequency},${phase},${amplitudeRatio},${startAmplitude},${ySteps},${quantizeY},${chorusOffset},${chorusPhase},${returningToSmooth},${guideOpacity},${!!gpu}`
   if (drawKey === lastDrawKey) return
   lastDrawKey = drawKey
@@ -160,13 +160,14 @@ function draw() {
   ctx.globalAlpha = guideOpacity
   const markerInk = colors.marker
   ctx.strokeStyle = markerInk
-  ctx.fillStyle = colors.background
+  ctx.fillStyle = markerInk
   ctx.lineWidth = 2
   if (stage === 'frequency') {
     // The two peaks stay symmetric about the fixed trough at the plot center.
     const startX = x(0.5 - 0.5 / frequency)
     const endX = x(0.5 + 0.5 / frequency)
     const peakY = mid - quantize(amplitude, quantizationStep, quantizeY)
+    ctx.setLineDash([3, 4])
     ctx.beginPath()
     ctx.moveTo(startX, peakY)
     ctx.lineTo(endX, peakY)
@@ -175,6 +176,7 @@ function draw() {
       ctx.lineTo(px, peakY + 9)
     }
     ctx.stroke()
+    ctx.setLineDash([])
     for (const px of [startX, endX]) {
       ctx.beginPath()
       ctx.arc(px, peakY, 5, 0, tau)
@@ -183,22 +185,13 @@ function draw() {
     }
   } else if (stage === 'amplitude') {
     const peakX = x(0.5 - 0.5 / frequency)
-    const startY = mid - quantize(startAmplitude * (bottom - top), quantizationStep, quantizeY)
     const peakY = mid - quantize(amplitude, quantizationStep, quantizeY)
     ctx.setLineDash([3, 4])
     ctx.beginPath()
-    ctx.moveTo(padding, startY)
-    ctx.lineTo(width - padding, startY)
+    ctx.moveTo(padding, peakY)
+    ctx.lineTo(width - padding, peakY)
     ctx.stroke()
     ctx.setLineDash([])
-    ctx.beginPath()
-    ctx.moveTo(peakX, mid)
-    ctx.lineTo(peakX, peakY)
-    for (const py of [mid, peakY]) {
-      ctx.moveTo(peakX - 9, py)
-      ctx.lineTo(peakX + 9, py)
-    }
-    ctx.stroke()
     ctx.beginPath()
     ctx.arc(peakX, peakY, 5, 0, tau)
     ctx.fill()
@@ -251,51 +244,30 @@ function draw() {
     const startX = x(0.5 + 0.5 / frequency)
     const targetX = x(0.5 - 0.5 / frequency)
     const movingX = x(0.5 + (0.5 - chorusPhase / tau) / frequency)
-    const peakY = mid - quantize(amplitude, quantizationStep, quantizeY) * 0.5
     ctx.save()
     ctx.globalAlpha *= 0.55
     ctx.setLineDash([3, 4])
     ctx.beginPath()
     for (const px of [startX, targetX]) {
-      ctx.moveTo(px, peakY)
-      ctx.lineTo(px, bottom)
+      ctx.moveTo(px, 0)
+      ctx.lineTo(px, height)
     }
     ctx.stroke()
-    ctx.setLineDash([])
-    for (const px of [startX, targetX]) {
-      ctx.beginPath()
-      ctx.arc(px, peakY, 5, 0, tau)
-      ctx.stroke()
-    }
     ctx.restore()
     ctx.beginPath()
-    ctx.moveTo(movingX, peakY)
-    ctx.lineTo(movingX, bottom)
+    ctx.moveTo(movingX, 0)
+    ctx.lineTo(movingX, height)
     ctx.stroke()
-    ctx.beginPath()
-    ctx.arc(movingX, peakY, 5, 0, tau)
-    ctx.fillStyle = markerInk
-    ctx.fill()
   } else {
     // Keep the same rising crossing, without wrapping to a different one.
     const crossingOffset = 0.25
-    const startX = x(0.5 + (crossingOffset - startPhase / tau) / frequency)
     const movingX = x(0.5 + (crossingOffset - phase / tau) / frequency)
     ctx.setLineDash([3, 4])
-    ctx.beginPath()
-    ctx.moveTo(startX, top)
-    ctx.lineTo(startX, bottom)
-    ctx.stroke()
-    ctx.setLineDash([])
-    // The hollow marker records the initial crossing; the filled marker follows it.
-    ctx.beginPath()
-    ctx.arc(startX, mid, 6, 0, tau)
-    ctx.fill()
-    ctx.stroke()
     ctx.beginPath()
     ctx.moveTo(movingX, top)
     ctx.lineTo(movingX, bottom)
     ctx.stroke()
+    ctx.setLineDash([])
     ctx.beginPath()
     ctx.arc(movingX, mid, 5, 0, tau)
     ctx.fillStyle = markerInk
