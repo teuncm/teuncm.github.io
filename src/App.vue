@@ -102,12 +102,15 @@ const personalLinks = [
                 <path d="M7 17 17 7M7 7h10v10" />
               </svg>
             </a>
-            <a href="/signal-processing/" class="inline-flex min-h-9 items-center rounded-sm text-sm font-medium text-teal-800 underline underline-offset-4 hover:text-teal-950 focus-visible:outline-2 focus-visible:outline-offset-4 dark:text-teal-300 dark:hover:text-teal-100">Signal processing notes</a>
           </nav>
         </div>
       </section>
 
-      <WavePlayground :dark="isDark" />
+      <WavePlayground :dark="isDark">
+        <template #corner>
+          <a href="/signal-processing/" class="absolute bottom-2 right-2 inline-flex min-h-8 cursor-pointer items-center rounded-sm bg-[#0d1112]/90 px-2 py-1 text-xs text-[#8b9c98] transition-colors hover:text-[#b4dbd1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300">Signal processing notes</a>
+        </template>
+      </WavePlayground>
       </template>
       <SignalProcessing v-else :dark="isDark" />
     </main>

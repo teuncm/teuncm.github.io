@@ -389,5 +389,6 @@ onBeforeUnmount(() => {
     >
       Animated sine wave with frequency, phase, amplitude, quantization, and chorus markers.
     </canvas>
+    <slot name="corner" />
   </div>
 </template>
