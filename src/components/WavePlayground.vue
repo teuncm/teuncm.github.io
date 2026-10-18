@@ -7,7 +7,6 @@ const canvas = ref<HTMLCanvasElement | null>(null)
 const gpuCanvas = ref<HTMLCanvasElement | null>(null)
 let gpu: WaveGpu | null = null
 let context: CanvasRenderingContext2D | null = null
-let axes: Path2D | null = null
 const sampleHeights = new Float64Array(33)
 let curveHeights = new Float64Array(0)
 let lastDrawKey = ''
@@ -112,10 +111,7 @@ function draw() {
   const ink = colors.wave
   ctx.clearRect(0, 0, width, height)
 
-  // Only the horizontal zero axis and the vertical center axis.
   ctx.lineWidth = 1
-  ctx.strokeStyle = colors.axis
-  if (axes) ctx.stroke(axes)
 
   // Draw stems as a single path. Samples always sit on the current signal.
   ctx.strokeStyle = colors.stems
@@ -338,11 +334,6 @@ onMounted(() => {
       context?.setTransform(ratio, 0, 0, ratio, 0, 0)
       gpu?.resize(pixelWidth, pixelHeight)
     }
-    axes = new Path2D()
-    axes.moveTo(8, height / 2)
-    axes.lineTo(width - 8, height / 2)
-    axes.moveTo(width / 2, 12)
-    axes.lineTo(width / 2, height - 12)
     lastDrawKey = ''
     if (visible && !document.hidden) draw()
   })
