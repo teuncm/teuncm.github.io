@@ -29,6 +29,7 @@ export interface GpuWaveFrame {
   amplitude: number
   ySteps: number
   quantizeY: number
+  chorusOffset: number
   dark: boolean
   highlight: boolean
   guideOpacity: number
@@ -47,17 +48,23 @@ precision highp float;
 uniform vec2 size;
 uniform vec4 signal;
 uniform float strength;
+uniform float chorusOffset;
 uniform float segments;
 uniform float strokeWidth;
 uniform vec2 range;
 out vec2 local;
 flat out float lengthPx;
 const float TAU = 6.28318530718;
-float wave(float t) {
-  float raw = sin(TAU * signal.x * (t - 0.5) - TAU * 0.25 + signal.y) * signal.z;
+float sampleValue(float t, float offset) {
+  float raw = sin(TAU * signal.x * (t - 0.5) - TAU * 0.25 + signal.y + offset) * signal.z;
   float stepSize = 0.5 / signal.w;
   float crushed = floor(raw / stepSize + 0.5) * stepSize;
-  return size.y * 0.5 - mix(raw, crushed, strength) * (size.y - 24.0);
+  return mix(raw, crushed, strength);
+}
+float wave(float t) {
+  float value = sampleValue(t, 0.0);
+  if (chorusOffset != 0.0) value = (value + sampleValue(t, chorusOffset)) * 0.5;
+  return size.y * 0.5 - value * (size.y - 24.0);
 }
 void main() {
   int instance = gl_InstanceID;
@@ -134,7 +141,7 @@ export function createWaveGpu(canvas: HTMLCanvasElement): WaveGpu | null {
     vao = gl.createVertexArray()
     if (!vao) throw new Error('Vertex array allocation failed')
     const locations = Object.fromEntries(
-      ['size', 'signal', 'strength', 'segments', 'strokeWidth', 'range', 'color']
+      ['size', 'signal', 'strength', 'chorusOffset', 'segments', 'strokeWidth', 'range', 'color']
         .map(name => [name, context.getUniformLocation(program!, name)]),
     )
     gl.useProgram(program)
@@ -154,12 +161,13 @@ export function createWaveGpu(canvas: HTMLCanvasElement): WaveGpu | null {
         context.uniform2f(locations.size!, frame.width, frame.height)
         context.uniform4f(locations.signal!, frame.frequency, frame.phase, frame.amplitude, frame.ySteps)
         context.uniform1f(locations.strength!, frame.quantizeY)
+        context.uniform1f(locations.chorusOffset!, frame.chorusOffset)
         const count = Math.ceil(frame.width - 16)
         context.uniform1f(locations.segments!, count)
         context.uniform1f(locations.strokeWidth!, colors.strokeWidth)
         context.uniform2f(locations.range!, 0, 1)
-        context.uniform4f(locations.color!, ...colors.waveRgb, 1)
         const multiplier = frame.quantizeY === 1 ? 2 : 1
+        context.uniform4f(locations.color!, ...colors.waveRgb, 1)
         context.drawArraysInstanced(context.TRIANGLES, 0, 6, count * multiplier)
         if (frame.highlight) {
           const segments = Math.ceil(count / frame.frequency)

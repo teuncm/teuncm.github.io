@@ -30,12 +30,7 @@ const personalLinks = [
       <header
         class="sticky top-2 z-20 mb-2 flex items-center justify-between gap-2 rounded-xl border border-line bg-surface/90 px-3 py-1 shadow-[0_1px_2px_#26352b08] backdrop-blur"
       >
-        <a href="#home" class="flex min-w-0 items-center gap-2">
-          <img
-            :src="profileImage"
-            alt="Portrait of Teun Mathijssen"
-            class="h-7 w-7 shrink-0 rounded-full border border-line object-cover"
-          />
+        <a href="#home" class="flex min-h-11 min-w-0 items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-500">
           <strong class="truncate text-sm font-semibold">Teun M.</strong>
         </a>
 
@@ -70,12 +65,10 @@ const personalLinks = [
             />
 
             <div class="min-w-0 self-center">
-              <h1 class="text-3xl font-semibold tracking-[-0.05em] text-heading sm:text-4xl lg:text-5xl">
-                Hi, I&apos;m Teun!
+              <h1 class="text-xl font-medium leading-relaxed text-heading sm:text-2xl lg:text-3xl">
+                <span class="whitespace-nowrap">/tøyn/ (NL)</span>
+                or <span class="whitespace-nowrap">/tjuːn/ (EN)</span>
               </h1>
-              <p class="mt-2 text-sm leading-6 text-muted">
-                /tøyn/ (NL) or /tjuːn/ (EN)
-              </p>
             </div>
             <p class="col-span-2 max-w-2xl text-base leading-7 text-ink sm:col-span-1 sm:col-start-2 sm:text-lg">
               MSc student at the University of Amsterdam, interested in anything tech, AI, signal processing and music.

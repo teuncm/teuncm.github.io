@@ -44,9 +44,9 @@ function yTarget(round: number) {
 function waveState(time: number) {
   // Shorten all transitions by 10%, preserving their easing and marker timing.
   const timeline = time / 0.9
-  const round = Math.floor(timeline / 12)
-  const local = timeline % 12
-  const stages = ['frequency', 'phase', 'amplitude', 'y'] as const
+  const round = Math.floor(timeline / 15)
+  const local = timeline % 15
+  const stages = ['frequency', 'phase', 'amplitude', 'y', 'chorus'] as const
   const stage = stages[Math.floor(local / 3)]!
   const legTime = local % 3
   const progress = Math.max(0, Math.min(1, (legTime - 0.3) / 2.4))
@@ -59,16 +59,19 @@ function waveState(time: number) {
   const phase = local < 3 ? startPhase : stage === 'phase' ? startPhase + (targetPhase - startPhase) * eased : targetPhase
   const amplitude = local < 6 ? startAmplitude : stage === 'amplitude' ? startAmplitude + (amplitudeTarget(round) - startAmplitude) * eased : amplitudeTarget(round)
   const startY = round === 0 ? yTarget(0) : yTarget(round - 1)
-  const ySteps = local < 9 ? startY : Math.round(startY + (yTarget(round) - startY) * eased)
+  const ySteps = local < 9 ? startY : stage === 'y' ? Math.round(startY + (yTarget(round) - startY) * eased) : yTarget(round)
   const guideOpacity = Math.min(1, legTime / 0.2, (3 - legTime) / 0.2)
   // Cycle through coarse, fine, and smooth output; retain each setting between changes.
   const startQuantization = round === 0 || (round - 1) % 3 === 2 ? 0 : 1
   const targetQuantization = round % 3 === 2 ? 0 : 1
   const quantizeY = stage === 'y'
     ? startQuantization + (targetQuantization - startQuantization) * eased
-    : startQuantization
+    : stage === 'chorus' ? targetQuantization : startQuantization
+  const chorusPhase = stage === 'chorus' ? tau * eased : 0
+  // Use the original signal at both endpoints, avoiding floating-point seam artifacts.
+  const chorusOffset = stage === 'chorus' && progress > 0 && progress < 1 ? chorusPhase : 0
   return { stage, frequency, phase, startPhase, amplitude, startAmplitude, ySteps,
-    quantizeY, returningToSmooth: targetQuantization === 0, guideOpacity }
+    quantizeY, chorusPhase, chorusOffset, returningToSmooth: targetQuantization === 0, guideOpacity }
 }
 
 function quantize(value: number, step: number, strength: number) {
@@ -83,8 +86,9 @@ function draw() {
   const top = 12
   const bottom = height - 12
   const mid = (top + bottom) / 2
-  const { stage, frequency, phase, startPhase, amplitude: amplitudeRatio, startAmplitude, ySteps, quantizeY, returningToSmooth, guideOpacity } = waveState(elapsed)
-  const drawKey = `${width},${height},${props.dark},${stage},${frequency},${phase},${amplitudeRatio},${startAmplitude},${ySteps},${quantizeY},${returningToSmooth},${guideOpacity},${!!gpu}`
+  const state = waveState(elapsed)
+  const { stage, frequency, phase, startPhase, amplitude: amplitudeRatio, startAmplitude, ySteps, quantizeY, chorusPhase, chorusOffset, returningToSmooth, guideOpacity } = state
+  const drawKey = `${width},${height},${props.dark},${stage},${frequency},${phase},${amplitudeRatio},${startAmplitude},${ySteps},${quantizeY},${chorusOffset},${chorusPhase},${returningToSmooth},${guideOpacity},${!!gpu}`
   if (drawKey === lastDrawKey) return
   lastDrawKey = drawKey
   const amplitude = (bottom - top) * amplitudeRatio
@@ -93,13 +97,17 @@ function draw() {
   const sampleRate = 32
   const x = (t: number) => padding + t * plotWidth
   // Scale around the middle trough, so changing frequency never translates it.
+  const value = (t: number, offset = 0) => {
+    const signal = Math.sin(tau * frequency * (t - 0.5) - Math.PI / 2 + phase + offset)
+    return quantize(signal * amplitude, quantizationStep, quantizeY)
+  }
   const y = (t: number) => {
-    const signal = Math.sin(tau * frequency * (t - 0.5) - Math.PI / 2 + phase)
-    return mid - quantize(signal * amplitude, quantizationStep, quantizeY)
+    const first = value(t)
+    return mid - (chorusOffset === 0 ? first : (first + value(t, chorusOffset)) * 0.5)
   }
   for (let i = 0; i <= sampleRate; i++) sampleHeights[i] = y(i / sampleRate)
   if (gpu) gpu.draw({ width, height, frequency, phase, amplitude: amplitudeRatio, ySteps,
-    quantizeY, dark: props.dark, highlight: stage === 'y' && returningToSmooth, guideOpacity })
+    quantizeY, chorusOffset, dark: props.dark, highlight: stage === 'y' && returningToSmooth, guideOpacity })
   const colors = props.dark ? wavePalettes.dark : wavePalettes.light
   const ink = colors.wave
   ctx.clearRect(0, 0, width, height)
@@ -239,6 +247,35 @@ function draw() {
       ctx.lineTo(markerX + 8, py)
     }
     ctx.stroke()
+  } else if (stage === 'chorus') {
+    const startX = x(0.5 + 0.5 / frequency)
+    const targetX = x(0.5 - 0.5 / frequency)
+    const movingX = x(0.5 + (0.5 - chorusPhase / tau) / frequency)
+    const peakY = mid - quantize(amplitude, quantizationStep, quantizeY) * 0.5
+    ctx.save()
+    ctx.globalAlpha *= 0.55
+    ctx.setLineDash([3, 4])
+    ctx.beginPath()
+    for (const px of [startX, targetX]) {
+      ctx.moveTo(px, peakY)
+      ctx.lineTo(px, bottom)
+    }
+    ctx.stroke()
+    ctx.setLineDash([])
+    for (const px of [startX, targetX]) {
+      ctx.beginPath()
+      ctx.arc(px, peakY, 5, 0, tau)
+      ctx.stroke()
+    }
+    ctx.restore()
+    ctx.beginPath()
+    ctx.moveTo(movingX, peakY)
+    ctx.lineTo(movingX, bottom)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(movingX, peakY, 5, 0, tau)
+    ctx.fillStyle = markerInk
+    ctx.fill()
   } else {
     // Keep the same rising crossing, without wrapping to a different one.
     const crossingOffset = 0.25
@@ -370,9 +407,9 @@ onBeforeUnmount(() => {
       ref="canvas"
       class="relative block h-48 w-full sm:h-56"
       role="img"
-      aria-label="Sine wave alternating frequency, phase, amplitude, and vertical quantization, with measurement markers."
+      aria-label="Sine wave alternating frequency, phase, amplitude, vertical quantization, and chorus interference, with measurement markers."
     >
-      Animated sine wave with frequency, phase, amplitude, and quantization markers.
+      Animated sine wave with frequency, phase, amplitude, quantization, and chorus markers.
     </canvas>
   </div>
 </template>
