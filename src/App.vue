@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import WavePlayground from './components/WavePlayground.vue'
+import portrait144 from './assets/teun-144.webp?no-inline'
+import portrait256 from './assets/teun-256.webp?no-inline'
+import portrait352 from './assets/teun-352.webp?no-inline'
+import portrait512 from './assets/teun-512.webp?no-inline'
 
 const isDark = ref(document.documentElement.classList.contains('dark'))
 
@@ -14,7 +18,7 @@ function toggleTheme() {
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark.value ? '#0a0a0a' : '#e0e4e1')
 }
 
-const profileImage = 'https://github.com/teuncm.png?size=512'
+const portraitSrcset = `${portrait144} 144w, ${portrait256} 256w, ${portrait352} 352w, ${portrait512} 512w`
 const personalLinks = [
   { label: 'GitHub', href: 'https://github.com/teuncm' },
   { label: 'LinkedIn', href: 'https://www.linkedin.com/in/teun-mathijssen/' },
@@ -58,7 +62,12 @@ const personalLinks = [
       <section id="home" class="scroll-mt-24">
         <div class="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-4 rounded-xl border border-line bg-surface p-5 shadow-[0_1px_2px_#26352b08] sm:grid-cols-[8rem_minmax(0,1fr)] lg:grid-cols-[11rem_minmax(0,1fr)]">
           <img
-            :src="profileImage"
+            :src="portrait352"
+            :srcset="portraitSrcset"
+            sizes="(min-width: 1024px) 176px, (min-width: 640px) 128px, 72px"
+            fetchpriority="high"
+            loading="eager"
+            decoding="async"
             alt="Portrait of Teun Mathijssen"
             width="176"
             height="176"
