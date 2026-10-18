@@ -25,16 +25,16 @@ const personalLinks = [
 </script>
 
 <template>
-  <div class="min-h-screen bg-page text-ink antialiased">
-    <div class="mx-auto flex min-h-screen w-[min(1080px,calc(100%-2rem))] flex-col gap-4 py-4">
-      <header
-        class="sticky top-4 z-20 flex items-center justify-between gap-2 rounded-xl border border-line bg-surface/90 px-3 py-1 shadow-[0_1px_2px_#26352b08] backdrop-blur"
-      >
-        <a href="#home" class="flex min-h-11 min-w-0 items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-500">
-          <strong class="truncate text-sm font-semibold">Teun M.</strong>
+  <div class="flex min-h-screen flex-col bg-page text-ink antialiased">
+    <header
+      class="sticky top-0 z-20 w-full border-b border-line bg-surface/90 backdrop-blur"
+    >
+      <div class="mx-auto flex w-[min(1080px,calc(100%-1rem))] items-center justify-between gap-2 pb-1 pt-[5px] sm:w-[min(1080px,calc(100%-2rem))]">
+        <a href="#home" class="flex min-h-11 min-w-0 items-center rounded-sm px-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-500">
+          <h1 class="truncate text-base font-semibold">Teun M.</h1>
         </a>
 
-        <div class="-mr-2 ml-auto flex items-center gap-2">
+        <div class="-mr-1 ml-auto flex items-center gap-2">
           <button
             type="button"
             :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
@@ -51,45 +51,45 @@ const personalLinks = [
             </svg>
           </button>
         </div>
-      </header>
+      </div>
+    </header>
 
-      <main class="flex flex-1 flex-col gap-4">
-        <section id="home" class="scroll-mt-24">
-          <div class="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-4 rounded-xl border border-line bg-surface p-5 shadow-[0_1px_2px_#26352b08] sm:grid-cols-[8rem_minmax(0,1fr)] lg:grid-cols-[11rem_minmax(0,1fr)]">
-            <img
-              :src="profileImage"
-              alt="Portrait of Teun Mathijssen"
-              width="176"
-              height="176"
-              class="aspect-square w-full self-start rounded-xl object-cover sm:row-span-3"
-            />
+    <main class="mx-auto flex w-[min(1080px,calc(100%-1rem))] flex-1 flex-col gap-4 py-4 sm:w-[min(1080px,calc(100%-2rem))]">
+      <section id="home" class="scroll-mt-24">
+        <div class="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-4 rounded-xl border border-line bg-surface p-5 shadow-[0_1px_2px_#26352b08] sm:grid-cols-[8rem_minmax(0,1fr)] lg:grid-cols-[11rem_minmax(0,1fr)]">
+          <img
+            :src="profileImage"
+            alt="Portrait of Teun Mathijssen"
+            width="176"
+            height="176"
+            class="aspect-square w-full self-start rounded-xl object-cover sm:row-span-3"
+          />
 
-            <div class="min-w-0 self-center">
-              <h1 class="text-xl font-medium leading-relaxed text-heading sm:text-2xl lg:text-3xl">
-                <span class="whitespace-nowrap">/tøyn/ (NL)</span>, <span class="whitespace-nowrap">/tjuːn/ (EN)</span>
-              </h1>
-            </div>
-            <p class="col-span-2 max-w-2xl text-base leading-7 text-ink sm:col-span-1 sm:col-start-2 sm:text-lg">
-              MSc student at the University of Amsterdam, interested in all things tech, AI, language, signal processing and music.
-            </p>
-            <nav aria-label="Elsewhere" class="col-span-2 flex flex-wrap gap-x-4 gap-y-0 sm:col-span-1 sm:col-start-2">
-              <a
-                v-for="link in personalLinks"
-                :key="link.label"
-                :href="link.href"
-                class="group inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-sm text-sm font-medium text-teal-800 hover:text-teal-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-600 dark:text-teal-300 dark:hover:text-teal-100 dark:focus-visible:outline-teal-300"
-              >
-                <span class="underline decoration-current underline-offset-4 group-hover:decoration-2">{{ link.label }}</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M7 17 17 7M7 7h10v10" />
-                </svg>
-              </a>
-            </nav>
+          <div class="min-w-0 self-center">
+            <h2 class="text-xl font-medium leading-relaxed text-heading sm:text-2xl lg:text-3xl">
+              <span class="whitespace-nowrap">/tøyn/ (NL)</span>, <span class="whitespace-nowrap">/tjuːn/ (EN)</span>
+            </h2>
           </div>
-        </section>
+          <p class="col-span-2 max-w-2xl text-base leading-7 text-ink sm:col-span-1 sm:col-start-2 sm:text-lg">
+            MSc student at the University of Amsterdam, interested in all things tech, AI, language, signal processing and music.
+          </p>
+          <nav aria-label="Elsewhere" class="col-span-2 flex flex-wrap gap-x-4 gap-y-0 sm:col-span-1 sm:col-start-2">
+            <a
+              v-for="link in personalLinks"
+              :key="link.label"
+              :href="link.href"
+              class="group inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-sm text-sm font-medium text-teal-800 hover:text-teal-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-600 dark:text-teal-300 dark:hover:text-teal-100 dark:focus-visible:outline-teal-300"
+            >
+              <span class="underline decoration-current underline-offset-4 group-hover:decoration-2">{{ link.label }}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M7 17 17 7M7 7h10v10" />
+              </svg>
+            </a>
+          </nav>
+        </div>
+      </section>
 
-        <WavePlayground :dark="isDark" />
-      </main>
-    </div>
+      <WavePlayground :dark="isDark" />
+    </main>
   </div>
 </template>
