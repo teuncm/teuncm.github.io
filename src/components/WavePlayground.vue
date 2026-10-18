@@ -371,13 +371,13 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    class="relative mt-5 overflow-hidden rounded-2xl border border-line"
+    class="relative overflow-hidden rounded-xl border border-line"
     :style="{ backgroundColor: (dark ? wavePalettes.dark : wavePalettes.light).background }"
   >
     <canvas ref="gpuCanvas" aria-hidden="true" class="pointer-events-none absolute inset-0 h-full w-full" />
     <canvas
       ref="canvas"
-      class="relative block h-48 w-full sm:h-56"
+      class="relative block h-44 w-full sm:h-48"
       role="img"
       aria-label="Sine wave alternating frequency, phase, amplitude, vertical quantization, and chorus interference, with measurement markers."
     >
