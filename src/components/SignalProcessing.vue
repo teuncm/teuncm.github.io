@@ -12,13 +12,16 @@ defineProps<{ dark: boolean }>()
         <span aria-hidden="true"> / </span>
         <span aria-current="page">Signal processing</span>
       </nav>
-      <h1 class="text-2xl font-medium text-heading sm:text-3xl">Signal processing, one sine wave at a time</h1>
+      <h1 class="text-2xl font-medium text-heading sm:text-3xl">Sine waves and signal processing</h1>
       <p class="mt-2 text-sm text-muted">Notes by <a href="/" rel="author" class="underline underline-offset-4">Teun Mathijssen · Teun M.</a></p>
       <p class="mt-4 max-w-3xl leading-7">
         The wave on my homepage cycles through frequency, phase, amplitude, quantization and
         interference. These are the signal processing ideas behind the animation, and a few
         details that make the changes easier to see.
       </p>
+      <nav aria-label="On this page" class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted">
+        <a v-for="section in ['Frequency', 'Phase', 'Amplitude', 'Quantization', 'Sampling', 'Chorus']" :key="section" :href="`#${section.toLowerCase()}`" class="underline underline-offset-4 hover:text-heading">{{ section }}</a>
+      </nav>
     </header>
 
     <WavePlayground :dark="dark" />
@@ -64,6 +67,10 @@ defineProps<{ dark: boolean }>()
         <p>This is the amplitude-reduction part of a bitcrusher. The demo blends between the
           original signal and the rounded signal so the transitions stay fluid. It also sometimes
           returns to the smooth wave; the highlighted curve follows that change.</p>
+        <figure class="mt-4 max-w-3xl">
+          <img src="/signal-processing.png" width="1200" height="630" loading="lazy" decoding="async" alt="A smooth sine wave above the same signal rounded to discrete amplitude levels." class="h-auto w-full rounded-xl border border-line" />
+          <figcaption class="mt-2 text-sm text-muted">The same sine wave before and after amplitude quantization.</figcaption>
+        </figure>
       </section>
 
       <section aria-labelledby="sampling">
@@ -97,7 +104,7 @@ defineProps<{ dark: boolean }>()
           30 frames per second and pauses when the plot is off-screen or the tab is hidden.
           Reduced-motion preferences keep the plot still. Smooth curves use fewer segments
           than stepped ones, and the smooth chorus uses the equivalent single-sine expression above.</p>
-        <p><a href="https://github.com/teuncm" rel="me">My code on GitHub</a> ·
+        <p><a href="https://github.com/teuncm/teuncm.github.io">Source code for this site</a> ·
           <a href="https://www.dspguide.com/ch3.htm">Sampling and quantization in The Scientist and Engineer’s Guide to DSP</a></p>
       </section>
     </div>
@@ -107,6 +114,7 @@ defineProps<{ dark: boolean }>()
 <style>
 .signal-notes section + section { margin-top: 1.75rem; }
 .signal-notes h2 { color: var(--heading); font-size: 1.125rem; font-weight: 500; }
+.signal-notes h2[id] { scroll-margin-top: 5rem; }
 .signal-notes p { max-width: 75ch; margin-top: 0.75rem; line-height: 1.8; }
 .signal-notes code { overflow-wrap: anywhere; font-size: 0.9em; color: var(--heading); }
 .signal-notes a { color: var(--heading); text-decoration: underline; text-underline-offset: 4px; }

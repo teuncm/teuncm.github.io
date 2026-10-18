@@ -14,9 +14,11 @@ try {
   for (const page of ['home', 'signal-processing']) {
     let content = await renderToString(createSSRApp(App, { page }))
     for (const [source, asset] of Object.entries(manifest)) {
+      content = content.replaceAll(`/${source}?no-inline`, `/${asset.file}`)
       content = content.replaceAll(`/${source}`, `/${asset.file}`)
     }
     if (content.includes('/src/assets/')) throw new Error('Unresolved asset in prerendered HTML')
+    if (content.includes('?no-inline')) throw new Error('Build-only asset query leaked into prerendered HTML')
     let html = template.replace('<div id="app"></div>', `<div id="app">${content}</div>`)
     if (page === 'signal-processing') {
       html = signalProcessingMetadata(html)
@@ -59,6 +61,14 @@ function signalProcessingMetadata(html) {
   meta('property', 'og:description', description)
   meta('name', 'twitter:title', title)
   meta('name', 'twitter:description', description)
+  meta('property', 'og:image', 'https://teuncm.nl/signal-processing.png')
+  meta('property', 'og:image:type', 'image/png')
+  meta('property', 'og:image:width', '1200')
+  meta('property', 'og:image:height', '630')
+  meta('property', 'og:image:alt', 'Sine wave and quantized wave — signal processing notes by Teun Mathijssen')
+  meta('name', 'twitter:card', 'summary_large_image')
+  meta('name', 'twitter:image', 'https://teuncm.nl/signal-processing.png')
+  meta('name', 'twitter:image:alt', 'Sine wave and quantized wave — signal processing notes by Teun Mathijssen')
   html = html.replace(/\s*<meta property="profile:[^"]*"[^>]*>/g, '')
   const match = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)
   if (!match) throw new Error('Missing structured data')
@@ -68,10 +78,10 @@ function signalProcessingMetadata(html) {
     '@graph': [
       ...graph.filter(node => node['@type'] !== 'ProfilePage'),
       {
-        '@type': 'TechArticle',
+        '@type': ['Article', 'TechArticle'],
         '@id': `${url}#article`,
         url,
-        headline: 'Signal processing, one sine wave at a time',
+        headline: 'Sine waves and signal processing',
         description,
         inLanguage: 'en',
         author: { '@id': 'https://teuncm.nl/#person' },
@@ -79,7 +89,7 @@ function signalProcessingMetadata(html) {
         isPartOf: { '@id': 'https://teuncm.nl/#website' },
         mainEntityOfPage: url,
         about: { '@type': 'Thing', name: 'Digital signal processing' },
-        image: 'https://teuncm.nl/portrait.webp',
+        image: 'https://teuncm.nl/signal-processing.png',
       },
       {
         '@type': 'BreadcrumbList',

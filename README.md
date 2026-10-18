@@ -19,8 +19,13 @@ TechArticle and breadcrumb metadata. The article's JavaScript is loaded only on
 that page. Its CSS is included in the initial HTML for readers without JavaScript.
 The homepage links to it and the sitemap includes both pages.
 
-`public/portrait.webp` is the stable social preview image (512 × 512); update it
+`public/portrait.webp` is the home page's stable social preview image (512 × 512); update it
 alongside the responsive portraits in `src/assets` when replacing the photo.
+The article uses `public/signal-processing.png` (1200 × 630), exported from the
+code-drawn `public/signal-processing.svg`. Its visible illustration and article
+metadata use the same image. Portrait URLs in the prerendered HTML must match
+the built preload URLs exactly; build-only `?no-inline` queries are stripped and
+checked to avoid downloading the portrait twice.
 
 After deployment, submit `https://teuncm.nl/sitemap.xml` in Google Search Console
 and inspect the home page. Local validation cannot confirm Google's indexing or
