@@ -15,14 +15,14 @@
 
 @layer base {
   :root {
-    --page: #ccc9c1;
-    --surface: #d5d2ca;
-    --inset: #c5c3b9;
-    --line: #b9b9ad;
+    --page: #e0e4e1;
+    --surface: #e7eae7;
+    --inset: #d7deda;
+    --line: #cad2cc;
     --ink: #3d4943;
     --heading: #2e3a34;
-    --muted: #505c54;
-    --subtle: #566159;
+    --muted: #3d4943;
+    --subtle: #3d4943;
   }
 
   html.dark {

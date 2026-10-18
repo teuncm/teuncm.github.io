@@ -1,4 +1,25 @@
-import { wavePalettes } from './wavePalette'
+// Shared by the GPU wave and the 2D overlay/fallback so theme colors stay in sync.
+const dark = {
+  background: '#0d1112',
+  wave: '#67d4c0',
+  axis: '#3a4647',
+  stems: '#67d4c033',
+  sample: '#b4dbd1',
+  marker: '#f0c778',
+  strokeWidth: 1.5,
+  sampleRadius: 2,
+}
+
+function rgb(hex: string): [number, number, number] {
+  return [1, 3, 5].map(offset => parseInt(hex.slice(offset, offset + 2), 16) / 255) as [number, number, number]
+}
+
+function palette(colors: typeof dark) {
+  return { ...colors, waveRgb: rgb(colors.wave), markerRgb: rgb(colors.marker) }
+}
+
+const plotPalette = palette(dark)
+export const wavePalettes = { light: plotPalette, dark: plotPalette }
 
 export interface GpuWaveFrame {
   width: number

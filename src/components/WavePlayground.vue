@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { createWaveGpu, type WaveGpu } from './waveGpu'
-import { wavePalettes } from './wavePalette'
+import { createWaveGpu, wavePalettes, type WaveGpu } from './waveGpu'
 
 const props = defineProps<{ dark: boolean }>()
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -363,7 +362,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    class="relative mt-8 overflow-hidden rounded-2xl border border-line"
+    class="relative mt-5 overflow-hidden rounded-2xl border border-line"
     :style="{ backgroundColor: (dark ? wavePalettes.dark : wavePalettes.light).background }"
   >
     <canvas ref="gpuCanvas" aria-hidden="true" class="pointer-events-none absolute inset-0 h-full w-full" />
