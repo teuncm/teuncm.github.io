@@ -108,7 +108,7 @@ const personalLinks = [
 
       <WavePlayground :dark="isDark">
         <template #corner>
-          <a href="/signal-processing/" class="absolute bottom-2 right-2 inline-flex min-h-8 cursor-pointer items-center rounded-sm bg-[#0d1112]/90 px-2 py-1 text-xs text-[#8b9c98] transition-colors hover:text-[#b4dbd1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300">Signal processing notes</a>
+          <a href="/signal-processing/" class="absolute bottom-0.5 right-0.5 inline-flex cursor-pointer items-center rounded-sm bg-[#0d1112]/90 px-0.5 py-px text-[10px] leading-tight text-[#8b9c98] transition-colors hover:text-[#b4dbd1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300">Signal processing notes</a>
         </template>
       </WavePlayground>
       </template>
