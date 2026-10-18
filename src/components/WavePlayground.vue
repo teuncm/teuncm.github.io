@@ -33,7 +33,7 @@ function frequencyTarget(round: number) {
 }
 
 function amplitudeTarget(round: number) {
-  return round % 2 === 0 ? 0.28 + randomAt(round, 2) * 0.04 : 0.5
+  return round % 2 === 0 ? 0.5 / 3 : 0.5
 }
 
 function yTarget(round: number) {
