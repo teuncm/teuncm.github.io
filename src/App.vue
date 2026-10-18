@@ -34,13 +34,13 @@ const personalLinks = [
           <strong class="truncate text-sm font-semibold">Teun M.</strong>
         </a>
 
-        <div class="ml-auto flex items-center gap-2">
+        <div class="-mr-2 ml-auto flex items-center gap-2">
           <button
             type="button"
             :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
             :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
             @click="toggleTheme"
-            class="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl border border-line bg-surface text-muted transition hover:bg-inset focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            class="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border border-line bg-surface text-muted transition hover:bg-inset focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
           >
             <svg v-if="isDark" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="4" />
