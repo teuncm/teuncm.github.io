@@ -22,6 +22,7 @@ function toggleTheme() {
 const profileImage = 'https://github.com/teuncm.png?size=512'
 const personalLinks = [
   { label: 'GitHub', href: 'https://github.com/teuncm' },
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/teun-mathijssen/' },
   { label: 'SoundCloud', href: 'https://soundcloud.com/tune_m' },
   { label: 'Instagram', href: 'https://www.instagram.com/dj_tune_m/' },
   { label: 'DJ showcase', href: 'https://teuncm.github.io/dj/' },
