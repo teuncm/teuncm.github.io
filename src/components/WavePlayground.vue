@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { createWaveGpu, wavePalettes, type WaveGpu } from './waveGpu'
+import { createWaveGpu, wavePalettes, waveSegments, type WaveGpu } from './waveGpu'
 
 const props = defineProps<{ dark: boolean }>()
 const canvas = ref<HTMLCanvasElement | null>(null)
 const gpuCanvas = ref<HTMLCanvasElement | null>(null)
 let gpu: WaveGpu | null = null
+let gpuAttempted = false
 let context: CanvasRenderingContext2D | null = null
 const sampleHeights = new Float64Array(33)
 let curveHeights = new Float64Array(0)
-let lastDrawKey = ''
+let lastDrawState: ReturnType<typeof waveState> | null = null
+let lastDrawDark = false
 let frame = 0
 let previousTime = 0
 let elapsed = 0
@@ -70,7 +72,7 @@ function waveState(time: number) {
   const chorusPhase = stage === 'chorus' ? chorusDirection * tau * eased : 0
   // Use the original signal at both endpoints, avoiding floating-point seam artifacts.
   const chorusOffset = stage === 'chorus' && progress > 0 && progress < 1 ? chorusPhase : 0
-  return { stage, frequency, phase, amplitude, startAmplitude, ySteps,
+  return { stage, frequency, phase, amplitude, ySteps,
     quantizeY, chorusDirection, chorusPhase, chorusOffset, returningToSmooth: targetQuantization === 0, guideOpacity }
 }
 
@@ -87,10 +89,16 @@ function draw() {
   const bottom = height - 12
   const mid = (top + bottom) / 2
   const state = waveState(elapsed)
-  const { stage, frequency, phase, amplitude: amplitudeRatio, startAmplitude, ySteps, quantizeY, chorusDirection, chorusPhase, chorusOffset, returningToSmooth, guideOpacity } = state
-  const drawKey = `${width},${height},${props.dark},${stage},${frequency},${phase},${amplitudeRatio},${startAmplitude},${ySteps},${quantizeY},${chorusOffset},${chorusPhase},${returningToSmooth},${guideOpacity},${!!gpu}`
-  if (drawKey === lastDrawKey) return
-  lastDrawKey = drawKey
+  const { stage, frequency, phase, amplitude: amplitudeRatio, ySteps, quantizeY, chorusDirection, chorusPhase, chorusOffset, returningToSmooth, guideOpacity } = state
+  const previous = lastDrawState
+  if (previous && props.dark === lastDrawDark && previous.stage === stage &&
+    previous.frequency === frequency && previous.phase === phase && previous.amplitude === amplitudeRatio &&
+    previous.ySteps === ySteps && previous.quantizeY === quantizeY &&
+    previous.chorusDirection === chorusDirection && previous.chorusPhase === chorusPhase &&
+    previous.chorusOffset === chorusOffset && previous.returningToSmooth === returningToSmooth &&
+    previous.guideOpacity === guideOpacity) return
+  lastDrawState = state
+  lastDrawDark = props.dark
   const amplitude = (bottom - top) * amplitudeRatio
   // Quantization is fixed to the full output range, independent of input amplitude.
   const quantizationStep = (bottom - top) / (2 * ySteps)
@@ -101,7 +109,10 @@ function draw() {
     const signal = Math.sin(tau * frequency * (t - 0.5) - Math.PI / 2 + phase + offset)
     return quantize(signal * amplitude, quantizationStep, quantizeY)
   }
+  const smoothPhase = phase + chorusOffset * 0.5
+  const smoothAmplitude = amplitude * Math.cos(chorusOffset * 0.5)
   const y = (t: number) => {
+    if (quantizeY === 0) return mid - Math.sin(tau * frequency * (t - 0.5) - Math.PI / 2 + smoothPhase) * smoothAmplitude
     const first = value(t)
     return mid - (chorusOffset === 0 ? first : (first + value(t, chorusOffset)) * 0.5)
   }
@@ -126,8 +137,9 @@ function draw() {
 
   if (!gpu) {
     // Reuse storage and evaluate each curve vertex only once in the CPU fallback.
-    const steps = Math.ceil(plotWidth)
-    if (curveHeights.length !== steps + 1) curveHeights = new Float64Array(steps + 1)
+    const steps = waveSegments(width, height, frequency, amplitudeRatio, quantizeY)
+    const capacity = Math.max(Math.ceil(plotWidth), steps) + 1
+    if (curveHeights.length < capacity) curveHeights = new Float64Array(capacity)
     for (let i = 0; i <= steps; i++) curveHeights[i] = y(i / steps)
     ctx.strokeStyle = ink
     ctx.lineWidth = colors.strokeWidth
@@ -181,8 +193,8 @@ function draw() {
     const peakY = mid - quantize(amplitude, quantizationStep, quantizeY)
     ctx.setLineDash([3, 4])
     ctx.beginPath()
-    ctx.moveTo(padding, peakY)
-    ctx.lineTo(width - padding, peakY)
+    ctx.moveTo(peakX, peakY)
+    ctx.lineTo(peakX, mid)
     ctx.stroke()
     ctx.setLineDash([])
     ctx.beginPath()
@@ -196,7 +208,7 @@ function draw() {
     ctx.lineCap = 'round'
     ctx.beginPath()
     const segmentStart = 0.5 - 0.5 / frequency
-    const segmentSteps = Math.ceil(plotWidth / frequency)
+    const segmentSteps = Math.ceil(waveSegments(width, height, frequency, amplitudeRatio, quantizeY) / frequency)
     let lastY = y(segmentStart)
     for (let i = 0; i <= segmentSteps; i++) {
       const t = segmentStart + i / (segmentSteps * frequency)
@@ -210,7 +222,8 @@ function draw() {
     }
     ctx.stroke()
   } else if (stage === 'y') {
-    // Short ticks mark the available amplitude levels without a background grid.
+    // Centered dashes suggest the available amplitude levels.
+    const tickHalfWidth = Math.min(28, plotWidth * 0.05)
     ctx.save()
     ctx.globalAlpha *= 0.35
     ctx.lineWidth = 1
@@ -218,8 +231,8 @@ function draw() {
     ctx.beginPath()
     for (let level = -ySteps; level <= ySteps; level++) {
       const py = mid - level * quantizationStep
-      ctx.moveTo(x(0.5) - 5, py)
-      ctx.lineTo(x(0.5) + 5, py)
+      ctx.moveTo(x(0.5) - tickHalfWidth, py)
+      ctx.lineTo(x(0.5) + tickHalfWidth, py)
     }
     ctx.stroke()
     ctx.restore()
@@ -299,21 +312,20 @@ function onContextLost(event: Event) {
   event.preventDefault()
   gpu?.dispose()
   gpu = null
-  lastDrawKey = ''
+  lastDrawState = null
   syncAnimation()
 }
 
 function onContextRestored() {
   gpu = createWaveGpu(gpuCanvas.value!)
   gpu?.resize(canvas.value!.width, canvas.value!.height)
-  lastDrawKey = ''
+  lastDrawState = null
   syncAnimation()
 }
 
 onMounted(() => {
   const element = canvas.value!
   context = element.getContext('2d')
-  gpu = createWaveGpu(gpuCanvas.value!)
   gpuCanvas.value!.addEventListener('webglcontextlost', onContextLost)
   gpuCanvas.value!.addEventListener('webglcontextrestored', onContextRestored)
   motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -331,12 +343,18 @@ onMounted(() => {
       context?.setTransform(ratio, 0, 0, ratio, 0, 0)
       gpu?.resize(pixelWidth, pixelHeight)
     }
-    lastDrawKey = ''
+    lastDrawState = null
     if (visible && !document.hidden) draw()
   })
   resizeObserver.observe(element)
   intersectionObserver = new IntersectionObserver(([entry]) => {
     visible = entry?.isIntersecting ?? false
+    if (visible && !gpuAttempted) {
+      gpuAttempted = true
+      gpu = createWaveGpu(gpuCanvas.value!)
+      gpu?.resize(element.width, element.height)
+      lastDrawState = null
+    }
     syncAnimation()
   })
   intersectionObserver.observe(element)

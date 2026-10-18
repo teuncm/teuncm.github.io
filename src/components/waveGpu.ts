@@ -41,6 +41,14 @@ export interface WaveGpu {
   dispose(): void
 }
 
+export function waveSegments(width: number, height: number, frequency: number, amplitude: number, quantization: number) {
+  const fullResolution = Math.max(1, Math.ceil(width - 16))
+  // Bound smooth sine interpolation error to 0.1 CSS px. Steps keep pixel resolution.
+  if (quantization > 0) return fullResolution
+  const curvature = Math.PI * 2 * frequency * Math.sqrt(Math.max(0, (height - 24) * amplitude) / 0.8)
+  return Math.max(32, Math.ceil(curvature))
+}
+
 // Each instance is one antialiased line segment. Wave evaluation and quantization
 // happen in the vertex shader; only a few uniforms cross from JS each frame.
 const vertexSource = `#version 300 es
@@ -49,6 +57,7 @@ uniform vec2 size;
 uniform vec4 signal;
 uniform float strength;
 uniform float chorusOffset;
+uniform vec2 smoothChorus;
 uniform float segments;
 uniform float strokeWidth;
 uniform vec2 range;
@@ -62,6 +71,10 @@ float sampleValue(float t, float offset) {
   return mix(raw, crushed, strength);
 }
 float wave(float t) {
+  if (strength == 0.0) {
+    float raw = sin(TAU * signal.x * (t - 0.5) - TAU * 0.25 + signal.y + smoothChorus.x) * signal.z * smoothChorus.y;
+    return size.y * 0.5 - raw * (size.y - 24.0);
+  }
   float value = sampleValue(t, 0.0);
   if (chorusOffset != 0.0) value = (value + sampleValue(t, chorusOffset)) * 0.5;
   return size.y * 0.5 - value * (size.y - 24.0);
@@ -80,12 +93,17 @@ void main() {
   }
   vec2 delta = b - a;
   lengthPx = length(delta);
+  if (lengthPx < 0.0001) {
+    local = vec2(0.0);
+    gl_Position = vec4(2.0, 2.0, 0.0, 1.0);
+    return;
+  }
   vec2 direction = lengthPx > 0.0001 ? delta / lengthPx : vec2(1.0, 0.0);
   vec2 normal = vec2(-direction.y, direction.x);
   float edge = strokeWidth * 0.5 + 1.0;
   int id = gl_VertexID;
-  bool end = id == 1 || id == 2 || id == 4;
-  float side = (id == 0 || id == 1 || id == 3) ? -1.0 : 1.0;
+  bool end = id == 1 || id == 3;
+  float side = id < 2 ? -1.0 : 1.0;
   local = vec2(end ? lengthPx + edge : -edge, side * edge);
   vec2 point = a + direction * local.x + normal * local.y;
   gl_Position = vec4(point.x / size.x * 2.0 - 1.0, 1.0 - point.y / size.y * 2.0, 0.0, 1.0);
@@ -141,7 +159,7 @@ export function createWaveGpu(canvas: HTMLCanvasElement): WaveGpu | null {
     vao = gl.createVertexArray()
     if (!vao) throw new Error('Vertex array allocation failed')
     const locations = Object.fromEntries(
-      ['size', 'signal', 'strength', 'chorusOffset', 'segments', 'strokeWidth', 'range', 'color']
+      ['size', 'signal', 'strength', 'chorusOffset', 'smoothChorus', 'segments', 'strokeWidth', 'range', 'color']
         .map(name => [name, context.getUniformLocation(program!, name)]),
     )
     gl.useProgram(program)
@@ -162,20 +180,22 @@ export function createWaveGpu(canvas: HTMLCanvasElement): WaveGpu | null {
         context.uniform4f(locations.signal!, frame.frequency, frame.phase, frame.amplitude, frame.ySteps)
         context.uniform1f(locations.strength!, frame.quantizeY)
         context.uniform1f(locations.chorusOffset!, frame.chorusOffset)
-        const count = Math.ceil(frame.width - 16)
+        const halfPhase = frame.chorusOffset * 0.5
+        context.uniform2f(locations.smoothChorus!, halfPhase, Math.cos(halfPhase))
+        const count = waveSegments(frame.width, frame.height, frame.frequency, frame.amplitude, frame.quantizeY)
         context.uniform1f(locations.segments!, count)
         context.uniform1f(locations.strokeWidth!, colors.strokeWidth)
         context.uniform2f(locations.range!, 0, 1)
         const multiplier = frame.quantizeY === 1 ? 2 : 1
         context.uniform4f(locations.color!, ...colors.waveRgb, 1)
-        context.drawArraysInstanced(context.TRIANGLES, 0, 6, count * multiplier)
+        context.drawArraysInstanced(context.TRIANGLE_STRIP, 0, 4, count * multiplier)
         if (frame.highlight) {
           const segments = Math.ceil(count / frame.frequency)
           context.uniform1f(locations.segments!, segments)
           context.uniform1f(locations.strokeWidth!, 2.5)
           context.uniform2f(locations.range!, 0.5 - 0.5 / frame.frequency, 0.5 + 0.5 / frame.frequency)
           context.uniform4f(locations.color!, ...colors.markerRgb, frame.guideOpacity)
-          context.drawArraysInstanced(context.TRIANGLES, 0, 6, segments * multiplier)
+          context.drawArraysInstanced(context.TRIANGLE_STRIP, 0, 4, segments * multiplier)
         }
       },
       dispose,
