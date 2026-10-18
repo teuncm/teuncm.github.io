@@ -167,10 +167,6 @@ function draw() {
     ctx.beginPath()
     ctx.moveTo(startX, peakY)
     ctx.lineTo(endX, peakY)
-    for (const px of [startX, endX]) {
-      ctx.moveTo(px, peakY - 9)
-      ctx.lineTo(px, peakY + 9)
-    }
     ctx.stroke()
     ctx.setLineDash([])
     for (const px of [startX, endX]) {
