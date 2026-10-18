@@ -330,10 +330,11 @@ onMounted(() => {
   gpuCanvas.value!.addEventListener('webglcontextrestored', onContextRestored)
   motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
   motionPreference.addEventListener('change', syncAnimation)
-  resizeObserver = new ResizeObserver(() => {
-    const bounds = element.getBoundingClientRect()
-    width = bounds.width
-    height = bounds.height
+  resizeObserver = new ResizeObserver(([entry]) => {
+    if (!entry) return
+    // Use the measured size delivered by the browser without another layout read.
+    width = entry.contentRect.width
+    height = entry.contentRect.height
     const ratio = Math.min(window.devicePixelRatio || 1, 2)
     const pixelWidth = Math.round(width * ratio)
     const pixelHeight = Math.round(height * ratio)

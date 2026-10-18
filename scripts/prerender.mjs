@@ -33,6 +33,10 @@ try {
       // This page has no portrait; keep its image preload on the home page only.
       html = html.replace(/<link\s+rel="preload"\s+as="image"[\s\S]*?\/>/, '')
     }
+    // Discover every render-blocking stylesheet before the hydration entry.
+    const entryScript = html.match(/<script type="module"[^>]*src="[^"]+"[^>]*><\/script>/)
+    if (!entryScript) throw new Error('Missing hydration entry')
+    html = html.replace(entryScript[0], '').replace('</head>', `${entryScript[0]}\n</head>`)
     const directory = page === 'home' ? 'dist' : 'dist/signal-processing'
     await mkdir(directory, { recursive: true })
     await writeFile(`${directory}/index.html`, html)
