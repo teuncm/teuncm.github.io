@@ -66,11 +66,12 @@ function waveState(time: number) {
   const quantizeY = stage === 'y'
     ? startQuantization + (targetQuantization - startQuantization) * eased
     : stage === 'chorus' ? targetQuantization : startQuantization
-  const chorusPhase = stage === 'chorus' ? tau * eased : 0
+  const chorusDirection = round % 2 === 0 ? 1 : -1
+  const chorusPhase = stage === 'chorus' ? chorusDirection * tau * eased : 0
   // Use the original signal at both endpoints, avoiding floating-point seam artifacts.
   const chorusOffset = stage === 'chorus' && progress > 0 && progress < 1 ? chorusPhase : 0
   return { stage, frequency, phase, amplitude, startAmplitude, ySteps,
-    quantizeY, chorusPhase, chorusOffset, returningToSmooth: targetQuantization === 0, guideOpacity }
+    quantizeY, chorusDirection, chorusPhase, chorusOffset, returningToSmooth: targetQuantization === 0, guideOpacity }
 }
 
 function quantize(value: number, step: number, strength: number) {
@@ -86,7 +87,7 @@ function draw() {
   const bottom = height - 12
   const mid = (top + bottom) / 2
   const state = waveState(elapsed)
-  const { stage, frequency, phase, amplitude: amplitudeRatio, startAmplitude, ySteps, quantizeY, chorusPhase, chorusOffset, returningToSmooth, guideOpacity } = state
+  const { stage, frequency, phase, amplitude: amplitudeRatio, startAmplitude, ySteps, quantizeY, chorusDirection, chorusPhase, chorusOffset, returningToSmooth, guideOpacity } = state
   const drawKey = `${width},${height},${props.dark},${stage},${frequency},${phase},${amplitudeRatio},${startAmplitude},${ySteps},${quantizeY},${chorusOffset},${chorusPhase},${returningToSmooth},${guideOpacity},${!!gpu}`
   if (drawKey === lastDrawKey) return
   lastDrawKey = drawKey
@@ -217,12 +218,12 @@ function draw() {
     ctx.beginPath()
     for (let level = -ySteps; level <= ySteps; level++) {
       const py = mid - level * quantizationStep
-      ctx.moveTo(x(0.85) - 5, py)
-      ctx.lineTo(x(0.85) + 5, py)
+      ctx.moveTo(x(0.5) - 5, py)
+      ctx.lineTo(x(0.5) + 5, py)
     }
     ctx.stroke()
     ctx.restore()
-    const markerX = x(0.85)
+    const markerX = x(0.5)
     const stepY = mid - quantizationStep
     ctx.beginPath()
     ctx.moveTo(markerX, mid)
@@ -233,9 +234,9 @@ function draw() {
     }
     ctx.stroke()
   } else if (stage === 'chorus') {
-    const startX = x(0.5 + 0.5 / frequency)
-    const targetX = x(0.5 - 0.5 / frequency)
-    const movingX = x(0.5 + (0.5 - chorusPhase / tau) / frequency)
+    const startX = x(0.5 + chorusDirection * 0.5 / frequency)
+    const targetX = x(0.5 - chorusDirection * 0.5 / frequency)
+    const movingX = x(0.5 + (chorusDirection * 0.5 - chorusPhase / tau) / frequency)
     ctx.save()
     ctx.globalAlpha *= 0.55
     ctx.setLineDash([3, 4])
