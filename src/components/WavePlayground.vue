@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { createWaveGpu, wavePalettes, waveSegments, type WaveGpu } from './waveGpu'
 
-const props = defineProps<{ dark: boolean }>()
 const canvas = ref<HTMLCanvasElement | null>(null)
 const gpuCanvas = ref<HTMLCanvasElement | null>(null)
 let gpu: WaveGpu | null = null
@@ -10,10 +9,12 @@ let gpuAttempted = false
 let context: CanvasRenderingContext2D | null = null
 const sampleHeights = new Float64Array(33)
 let curveHeights = new Float64Array(0)
+let highlightHeights = new Float64Array(0)
 let lastDrawState: ReturnType<typeof waveState> | null = null
-let lastDrawDark = false
 let frame = 0
-let previousTime = 0
+let wakeTimer = 0
+let previousTime: number | null = null
+let lastPaintTime = 0
 let elapsed = 0
 let width = 0
 let height = 0
@@ -23,6 +24,9 @@ let intersectionObserver: IntersectionObserver | undefined
 let motionPreference: MediaQueryList | undefined
 const tau = Math.PI * 2
 const seed = Math.random() * 10000
+const stages = ['frequency', 'phase', 'amplitude', 'y', 'chorus'] as const
+let cachedRound = -1
+let targets = { startFrequency: 0, frequency: 0, startY: 0, y: 0 }
 
 function randomAt(round: number, channel: number) {
   const value = Math.sin(round * 127.1 + channel * 311.7 + seed) * 43758.5453
@@ -47,20 +51,28 @@ function waveState(time: number) {
   const timeline = time / 0.86
   const round = Math.floor(timeline / 15)
   const local = timeline % 15
-  const stages = ['frequency', 'phase', 'amplitude', 'y', 'chorus'] as const
+  if (round !== cachedRound) {
+    cachedRound = round
+    targets = {
+      startFrequency: round === 0 ? 2.4 : frequencyTarget(round - 1),
+      frequency: frequencyTarget(round),
+      startY: round === 0 ? yTarget(0) : yTarget(round - 1),
+      y: yTarget(round),
+    }
+  }
   const stage = stages[Math.floor(local / 3)]!
   const legTime = local % 3
   const progress = Math.max(0, Math.min(1, (legTime - 0.3) / 2.4))
   const eased = (1 - Math.cos(Math.PI * progress)) / 2
-  const startFrequency = round === 0 ? 2.4 : frequencyTarget(round - 1)
+  const startFrequency = targets.startFrequency
   const startAmplitude = round === 0 ? 0.5 : amplitudeTarget(round - 1)
   const startPhase = round % 2 === 0 ? 0 : tau
   const targetPhase = round % 2 === 0 ? tau : 0
-  const frequency = stage === 'frequency' ? startFrequency + (frequencyTarget(round) - startFrequency) * eased : frequencyTarget(round)
+  const frequency = stage === 'frequency' ? startFrequency + (targets.frequency - startFrequency) * eased : targets.frequency
   const phase = local < 3 ? startPhase : stage === 'phase' ? startPhase + (targetPhase - startPhase) * eased : targetPhase
   const amplitude = local < 6 ? startAmplitude : stage === 'amplitude' ? startAmplitude + (amplitudeTarget(round) - startAmplitude) * eased : amplitudeTarget(round)
-  const startY = round === 0 ? yTarget(0) : yTarget(round - 1)
-  const ySteps = local < 9 ? startY : stage === 'y' ? Math.round(startY + (yTarget(round) - startY) * eased) : yTarget(round)
+  const startY = targets.startY
+  const ySteps = local < 9 ? startY : stage === 'y' ? Math.round(startY + (targets.y - startY) * eased) : targets.y
   const guideOpacity = Math.min(1, legTime / 0.2, (3 - legTime) / 0.2)
   // Cycle through coarse, fine, and smooth output; retain each setting between changes.
   const startQuantization = round === 0 || (round - 1) % 3 === 2 ? 0 : 1
@@ -77,7 +89,76 @@ function waveState(time: number) {
 }
 
 function quantize(value: number, step: number, strength: number) {
-  return value + (Math.round(value / step) * step - value) * strength
+  const rounded = Math.round(value / step) * step
+  return strength === 1 ? rounded : value + (rounded - value) * strength
+}
+
+function fillWaveHeights(output: Float64Array, steps: number, state: ReturnType<typeof waveState>, height: number, start = 0, span = 1) {
+  const { frequency, phase, amplitude: ratio, quantizeY: strength, ySteps, chorusOffset } = state
+  const amplitude = (height - 24) * ratio
+  const step = (height - 24) / (2 * ySteps)
+  const mid = height / 2
+  const smooth = strength === 0
+  const angle = tau * frequency * (start - 0.5) - Math.PI / 2 + phase + (smooth ? chorusOffset / 2 : 0)
+  const delta = tau * frequency * span / steps
+  const sinDelta = Math.sin(delta)
+  const cosDelta = Math.cos(delta)
+  const sinOffset = Math.sin(chorusOffset)
+  const cosOffset = Math.cos(chorusOffset)
+  const gain = smooth ? amplitude * Math.cos(chorusOffset / 2) : amplitude
+  let sine = Math.sin(angle)
+  let cosine = Math.cos(angle)
+  // Rotate successive samples instead of evaluating sine at every point.
+  for (let i = 0; i <= steps; i++) {
+    let value = sine * gain
+    if (!smooth) {
+      // Preserve rounding at exact half-levels despite recurrence roundoff.
+      if (Math.abs(Math.abs(value / step % 1) - 0.5) < 1e-10) {
+        value = Math.sin(tau * frequency * (start + i * span / steps - 0.5) - Math.PI / 2 + phase) * amplitude
+      }
+      value = quantize(value, step, strength)
+      if (chorusOffset !== 0) {
+        let second = (sine * cosOffset + cosine * sinOffset) * amplitude
+        if (Math.abs(Math.abs(second / step % 1) - 0.5) < 1e-10) {
+          second = Math.sin(tau * frequency * (start + i * span / steps - 0.5) - Math.PI / 2 + phase + chorusOffset) * amplitude
+        }
+        value = (value + quantize(second, step, strength)) * 0.5
+      }
+    }
+    output[i] = mid - value
+    const nextSine = sine * cosDelta + cosine * sinDelta
+    cosine = cosine * cosDelta - sine * sinDelta
+    sine = nextSine
+  }
+}
+
+function traceCurve(ctx: CanvasRenderingContext2D, heights: Float64Array, steps: number, startX: number, spanX: number, stepped: boolean) {
+  ctx.moveTo(startX, heights[0]!)
+  for (let i = 1; i <= steps; i++) {
+    if (stepped && heights[i] === heights[i - 1]) continue
+    const px = startX + i / steps * spanX
+    if (stepped) ctx.lineTo(px, heights[i - 1]!)
+    ctx.lineTo(px, heights[i]!)
+  }
+  if (stepped) ctx.lineTo(startX + spanX, heights[steps]!)
+}
+
+function nextChangeDelay(time: number) {
+  const legTime = time / 0.86 % 3
+  // Fade-in/out and continuously changing parameters need animation frames.
+  if (legTime < 0.2 || legTime >= 2.8) return 0
+  if (legTime < 0.3) return (0.3 - legTime) * 860
+  if (legTime >= 2.7) return (2.8 - legTime) * 860
+  const state = waveState(time)
+  const round = Math.floor(time / 0.86 / 15)
+  if (state.stage !== 'y' || round % 3 !== 1) return 0
+  // During a fully quantized transition, nothing moves between level changes.
+  const difference = targets.y - targets.startY
+  if (difference === 0 || state.ySteps === targets.y) return (2.8 - legTime) * 860
+  const nextLevel = state.ySteps + Math.sign(difference) * 0.5
+  const fraction = Math.max(0, Math.min(1, (nextLevel - targets.startY) / difference))
+  const changeTime = 0.3 + 2.4 * Math.acos(1 - 2 * fraction) / Math.PI
+  return Math.max(0, changeTime - legTime) * 860
 }
 
 function draw() {
@@ -91,35 +172,25 @@ function draw() {
   const state = waveState(elapsed)
   const { stage, frequency, phase, amplitude: amplitudeRatio, ySteps, quantizeY, chorusDirection, chorusPhase, chorusOffset, returningToSmooth, guideOpacity } = state
   const previous = lastDrawState
-  if (previous && props.dark === lastDrawDark && previous.stage === stage &&
+  if (previous && previous.stage === stage &&
     previous.frequency === frequency && previous.phase === phase && previous.amplitude === amplitudeRatio &&
     previous.ySteps === ySteps && previous.quantizeY === quantizeY &&
     previous.chorusDirection === chorusDirection && previous.chorusPhase === chorusPhase &&
     previous.chorusOffset === chorusOffset && previous.returningToSmooth === returningToSmooth &&
     previous.guideOpacity === guideOpacity) return
+  const signalChanged = !previous || previous.frequency !== frequency || previous.phase !== phase ||
+    previous.amplitude !== amplitudeRatio || previous.ySteps !== ySteps ||
+    previous.quantizeY !== quantizeY || previous.chorusOffset !== chorusOffset
   lastDrawState = state
-  lastDrawDark = props.dark
   const amplitude = (bottom - top) * amplitudeRatio
   // Quantization is fixed to the full output range, independent of input amplitude.
   const quantizationStep = (bottom - top) / (2 * ySteps)
   const sampleRate = 32
   const x = (t: number) => padding + t * plotWidth
-  // Scale around the middle trough, so changing frequency never translates it.
-  const value = (t: number, offset = 0) => {
-    const signal = Math.sin(tau * frequency * (t - 0.5) - Math.PI / 2 + phase + offset)
-    return quantize(signal * amplitude, quantizationStep, quantizeY)
-  }
-  const smoothPhase = phase + chorusOffset * 0.5
-  const smoothAmplitude = amplitude * Math.cos(chorusOffset * 0.5)
-  const y = (t: number) => {
-    if (quantizeY === 0) return mid - Math.sin(tau * frequency * (t - 0.5) - Math.PI / 2 + smoothPhase) * smoothAmplitude
-    const first = value(t)
-    return mid - (chorusOffset === 0 ? first : (first + value(t, chorusOffset)) * 0.5)
-  }
-  for (let i = 0; i <= sampleRate; i++) sampleHeights[i] = y(i / sampleRate)
+  if (signalChanged) fillWaveHeights(sampleHeights, sampleRate, state, height)
   if (gpu) gpu.draw({ width, height, frequency, phase, amplitude: amplitudeRatio, ySteps,
-    quantizeY, chorusOffset, dark: props.dark, highlight: stage === 'y' && returningToSmooth, guideOpacity })
-  const colors = props.dark ? wavePalettes.dark : wavePalettes.light
+    quantizeY, chorusOffset, highlight: stage === 'y' && returningToSmooth, guideOpacity })
+  const colors = wavePalettes.dark
   const ink = colors.wave
   ctx.clearRect(0, 0, width, height)
 
@@ -140,20 +211,12 @@ function draw() {
     const steps = waveSegments(width, height, frequency, amplitudeRatio, quantizeY)
     const capacity = Math.max(Math.ceil(plotWidth), steps) + 1
     if (curveHeights.length < capacity) curveHeights = new Float64Array(capacity)
-    for (let i = 0; i <= steps; i++) curveHeights[i] = y(i / steps)
+    if (signalChanged) fillWaveHeights(curveHeights, steps, state, height)
     ctx.strokeStyle = ink
     ctx.lineWidth = colors.strokeWidth
     ctx.lineJoin = 'round'
     ctx.beginPath()
-    for (let i = 0; i <= steps; i++) {
-      const px = x(i / steps)
-      const py = curveHeights[i]!
-      if (i === 0) ctx.moveTo(px, py)
-      else {
-        if (quantizeY === 1) ctx.lineTo(px, curveHeights[i - 1]!)
-        ctx.lineTo(px, py)
-      }
-    }
+    traceCurve(ctx, curveHeights, steps, padding, plotWidth, quantizeY === 1)
     ctx.stroke()
   }
   ctx.fillStyle = colors.sample
@@ -209,17 +272,11 @@ function draw() {
     ctx.beginPath()
     const segmentStart = 0.5 - 0.5 / frequency
     const segmentSteps = Math.ceil(waveSegments(width, height, frequency, amplitudeRatio, quantizeY) / frequency)
-    let lastY = y(segmentStart)
-    for (let i = 0; i <= segmentSteps; i++) {
-      const t = segmentStart + i / (segmentSteps * frequency)
-      const py = y(t)
-      if (i === 0) ctx.moveTo(x(t), py)
-      else {
-        if (quantizeY === 1) ctx.lineTo(x(t), lastY)
-        ctx.lineTo(x(t), py)
-      }
-      lastY = py
+    if (highlightHeights.length < segmentSteps + 1) highlightHeights = new Float64Array(segmentSteps + 1)
+    if (signalChanged || previous?.stage !== stage) {
+      fillWaveHeights(highlightHeights, segmentSteps, state, height, segmentStart, 1 / frequency)
     }
+    traceCurve(ctx, highlightHeights, segmentSteps, x(segmentStart), plotWidth / frequency, quantizeY === 1)
     ctx.stroke()
   } else if (stage === 'y') {
     // Centered dashes suggest the available amplitude levels.
@@ -282,31 +339,50 @@ function draw() {
   ctx.restore()
 }
 
+function scheduleNextFrame() {
+  const delay = nextChangeDelay(elapsed)
+  if (delay > 1000 / 30) {
+    wakeTimer = window.setTimeout(() => {
+      wakeTimer = 0
+      if (visible && !document.hidden && !motionPreference?.matches) frame = requestAnimationFrame(tick)
+    }, delay)
+  } else {
+    frame = requestAnimationFrame(tick)
+  }
+}
+
 function tick(time: number) {
   frame = 0
   if (!visible || document.hidden || motionPreference?.matches) return
+  if (previousTime !== null) elapsed += Math.max(0, time - previousTime) / 1000
+  previousTime = time
   // At most 30 draws per second, independent of the display refresh rate.
-  if (!previousTime || time - previousTime >= 1000 / 30) {
-    if (previousTime) elapsed += Math.min(time - previousTime, 100) / 1000
-    previousTime = time
+  if (time - lastPaintTime >= 1000 / 30) {
+    lastPaintTime = time
     draw()
+    scheduleNextFrame()
+  } else {
+    frame = requestAnimationFrame(tick)
   }
-  frame = requestAnimationFrame(tick)
 }
 
 function syncAnimation() {
+  const now = performance.now()
+  if (previousTime !== null) elapsed += Math.max(0, now - previousTime) / 1000
   cancelAnimationFrame(frame)
+  clearTimeout(wakeTimer)
   frame = 0
-  previousTime = 0
+  wakeTimer = 0
+  previousTime = null
   if (visible && !document.hidden) {
     draw()
-    if (!motionPreference?.matches) frame = requestAnimationFrame(tick)
+    if (!motionPreference?.matches) {
+      previousTime = now
+      lastPaintTime = now
+      scheduleNextFrame()
+    }
   }
 }
-
-watch(() => props.dark, () => {
-  if (visible && !document.hidden) draw()
-})
 
 function onContextLost(event: Event) {
   event.preventDefault()
@@ -364,6 +440,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   cancelAnimationFrame(frame)
+  clearTimeout(wakeTimer)
+  previousTime = null
   gpuCanvas.value?.removeEventListener('webglcontextlost', onContextLost)
   gpuCanvas.value?.removeEventListener('webglcontextrestored', onContextRestored)
   gpu?.dispose()
@@ -379,7 +457,7 @@ onBeforeUnmount(() => {
 <template>
   <div
     class="relative overflow-hidden rounded-xl border border-line"
-    :style="{ backgroundColor: (dark ? wavePalettes.dark : wavePalettes.light).background }"
+    :style="{ backgroundColor: wavePalettes.dark.background }"
   >
     <canvas ref="gpuCanvas" aria-hidden="true" class="pointer-events-none absolute inset-0 h-full w-full" />
     <canvas

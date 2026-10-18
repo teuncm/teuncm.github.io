@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import WavePlayground from './WavePlayground.vue'
-
-defineProps<{ dark: boolean }>()
 </script>
 
 <template>
@@ -24,7 +22,7 @@ defineProps<{ dark: boolean }>()
       </nav>
     </header>
 
-    <WavePlayground :dark="dark" />
+    <WavePlayground />
 
     <div class="signal-notes rounded-xl border border-line bg-surface p-5 sm:p-6">
       <section aria-labelledby="sine-wave">

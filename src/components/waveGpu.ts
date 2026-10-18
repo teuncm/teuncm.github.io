@@ -30,7 +30,6 @@ export interface GpuWaveFrame {
   ySteps: number
   quantizeY: number
   chorusOffset: number
-  dark: boolean
   highlight: boolean
   guideOpacity: number
 }
@@ -167,36 +166,76 @@ export function createWaveGpu(canvas: HTMLCanvasElement): WaveGpu | null {
     gl.enable(gl.BLEND)
     gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
     gl.clearColor(0, 0, 0, 0)
+    let previous: GpuWaveFrame | null = null
+    let stroke = NaN
+    let rangeStart = NaN
+    let rangeEnd = NaN
+    let segments = NaN
+    let rgb: readonly number[] | null = null
+    let alpha = NaN
+    function setStroke(value: number) {
+      if (stroke === value) return
+      stroke = value
+      context.uniform1f(locations.strokeWidth!, value)
+    }
+    function setRange(start: number, end: number) {
+      if (rangeStart === start && rangeEnd === end) return
+      rangeStart = start
+      rangeEnd = end
+      context.uniform2f(locations.range!, start, end)
+    }
+    function setSegments(value: number) {
+      if (segments === value) return
+      segments = value
+      context.uniform1f(locations.segments!, value)
+    }
+    function setColor(value: [number, number, number], opacity: number) {
+      if (rgb === value && alpha === opacity) return
+      rgb = value
+      alpha = opacity
+      context.uniform4f(locations.color!, ...value, opacity)
+    }
     return {
       resize(width, height) {
         canvas.width = width
         canvas.height = height
         context.viewport(0, 0, width, height)
+        previous = null
       },
       draw(frame) {
-        const colors = frame.dark ? wavePalettes.dark : wavePalettes.light
+        const colors = wavePalettes.dark
+        const sameSize = previous?.width === frame.width && previous.height === frame.height
+        const sameSignal = previous?.frequency === frame.frequency && previous.phase === frame.phase &&
+          previous.amplitude === frame.amplitude && previous.ySteps === frame.ySteps
+        // The 2D guides can move/fade while the GPU wave itself stays unchanged.
+        if (sameSize && sameSignal && previous!.quantizeY === frame.quantizeY &&
+          previous!.chorusOffset === frame.chorusOffset &&
+          previous!.highlight === frame.highlight && (!frame.highlight || previous!.guideOpacity === frame.guideOpacity)) return
         context.clear(context.COLOR_BUFFER_BIT)
-        context.uniform2f(locations.size!, frame.width, frame.height)
-        context.uniform4f(locations.signal!, frame.frequency, frame.phase, frame.amplitude, frame.ySteps)
-        context.uniform1f(locations.strength!, frame.quantizeY)
-        context.uniform1f(locations.chorusOffset!, frame.chorusOffset)
-        const halfPhase = frame.chorusOffset * 0.5
-        context.uniform2f(locations.smoothChorus!, halfPhase, Math.cos(halfPhase))
-        const count = waveSegments(frame.width, frame.height, frame.frequency, frame.amplitude, frame.quantizeY)
-        context.uniform1f(locations.segments!, count)
-        context.uniform1f(locations.strokeWidth!, colors.strokeWidth)
-        context.uniform2f(locations.range!, 0, 1)
-        const multiplier = frame.quantizeY === 1 ? 2 : 1
-        context.uniform4f(locations.color!, ...colors.waveRgb, 1)
-        context.drawArraysInstanced(context.TRIANGLE_STRIP, 0, 4, count * multiplier)
-        if (frame.highlight) {
-          const segments = Math.ceil(count / frame.frequency)
-          context.uniform1f(locations.segments!, segments)
-          context.uniform1f(locations.strokeWidth!, 2.5)
-          context.uniform2f(locations.range!, 0.5 - 0.5 / frame.frequency, 0.5 + 0.5 / frame.frequency)
-          context.uniform4f(locations.color!, ...colors.markerRgb, frame.guideOpacity)
-          context.drawArraysInstanced(context.TRIANGLE_STRIP, 0, 4, segments * multiplier)
+        if (!sameSize) context.uniform2f(locations.size!, frame.width, frame.height)
+        if (!sameSignal) context.uniform4f(locations.signal!, frame.frequency, frame.phase, frame.amplitude, frame.ySteps)
+        if (previous?.quantizeY !== frame.quantizeY) context.uniform1f(locations.strength!, frame.quantizeY)
+        if (previous?.chorusOffset !== frame.chorusOffset) {
+          context.uniform1f(locations.chorusOffset!, frame.chorusOffset)
+          const halfPhase = frame.chorusOffset * 0.5
+          context.uniform2f(locations.smoothChorus!, halfPhase, Math.cos(halfPhase))
         }
+        const count = waveSegments(frame.width, frame.height, frame.frequency, frame.amplitude, frame.quantizeY)
+        setSegments(count)
+        setStroke(colors.strokeWidth)
+        setRange(0, 1)
+        const multiplier = frame.quantizeY === 1 ? 2 : 1
+        setColor(colors.waveRgb, 1)
+        context.drawArraysInstanced(context.TRIANGLE_STRIP, 0, 4, count * multiplier)
+        if (frame.highlight && frame.guideOpacity > 0) {
+          const highlightedSegments = Math.ceil(count / frame.frequency)
+          setSegments(highlightedSegments)
+          setStroke(2.5)
+          setRange(0.5 - 0.5 / frame.frequency, 0.5 + 0.5 / frame.frequency)
+          setColor(colors.markerRgb, frame.guideOpacity)
+          context.drawArraysInstanced(context.TRIANGLE_STRIP, 0, 4, highlightedSegments * multiplier)
+        }
+        previous = frame
       },
       dispose,
     }

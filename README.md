@@ -19,6 +19,12 @@ TechArticle and breadcrumb metadata. The article's JavaScript is loaded only on
 that page. Its CSS is included in the initial HTML for readers without JavaScript.
 The homepage links to it and the sitemap includes both pages.
 
+All components use Composition API. `vite.config.ts` disables unused Vue Options
+API support in the browser bundle; revisit that flag before adding a library
+that requires Options API. Theme state is local to `ThemeToggle.vue`; the page
+uses CSS variables, and the wave deliberately keeps the same palette in both
+themes. Its animation clock and buffers stay outside Vue reactivity.
+
 `public/portrait.webp` is the home page's stable social preview image (512 × 512); update it
 alongside the responsive portraits in `src/assets` when replacing the photo.
 The article uses `public/signal-processing.png` (1200 × 630), exported from the

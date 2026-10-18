@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { defineAsyncComponent, ref } from 'vue'
+import { defineAsyncComponent } from 'vue'
 import WavePlayground from './components/WavePlayground.vue'
+import ThemeToggle from './components/ThemeToggle.vue'
 import portrait144 from './assets/teun-144.webp?no-inline'
 import portrait256 from './assets/teun-256.webp?no-inline'
 import portrait352 from './assets/teun-352.webp?no-inline'
@@ -8,20 +9,6 @@ import portrait512 from './assets/teun-512.webp?no-inline'
 
 const props = withDefaults(defineProps<{ page?: 'home' | 'signal-processing' }>(), { page: 'home' })
 const SignalProcessing = defineAsyncComponent(() => import('./components/SignalProcessing.vue'))
-
-const isDark = ref(typeof document === 'undefined' || document.documentElement.classList.contains('dark'))
-
-if (typeof document !== 'undefined') {
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark.value ? '#0a0a0a' : '#e0e4e1')
-}
-
-function toggleTheme() {
-  isDark.value = !isDark.value
-  const theme = isDark.value ? 'dark' : 'light'
-  document.documentElement.classList.toggle('dark', isDark.value)
-  document.documentElement.style.colorScheme = theme
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark.value ? '#0a0a0a' : '#e0e4e1')
-}
 
 const portraitSrcset = `${portrait144} 144w, ${portrait256} 256w, ${portrait352} 352w, ${portrait512} 512w`
 const personalLinks = [
@@ -45,21 +32,7 @@ const personalLinks = [
         </a>
 
         <div class="-mr-1 ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-            :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-            @click="toggleTheme"
-            class="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border border-line bg-surface text-muted transition hover:bg-inset focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
-          >
-            <svg v-if="isDark" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="4" />
-              <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
-            </svg>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" />
-            </svg>
-          </button>
+          <ThemeToggle />
         </div>
       </div>
     </header>
@@ -106,13 +79,13 @@ const personalLinks = [
         </div>
       </section>
 
-      <WavePlayground :dark="isDark">
+      <WavePlayground>
         <template #corner>
           <a href="/signal-processing/" class="absolute bottom-0.5 right-0.5 inline-flex cursor-pointer items-center rounded-sm bg-[#0d1112]/90 px-0.5 py-px text-[10px] leading-tight text-[#8b9c98] transition-colors hover:text-[#b4dbd1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300">Signal processing notes</a>
         </template>
       </WavePlayground>
       </template>
-      <SignalProcessing v-else :dark="isDark" />
+      <SignalProcessing v-else />
     </main>
   </div>
 </template>
