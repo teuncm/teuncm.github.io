@@ -72,12 +72,12 @@ const personalLinks = [
             <p class="col-span-2 max-w-2xl text-base leading-7 text-ink sm:col-span-1 sm:col-start-2 sm:text-lg">
               MSc student at the University of Amsterdam, interested in all things tech, AI, language, signal processing and music.
             </p>
-            <nav aria-label="Elsewhere" class="col-span-2 flex flex-wrap gap-4 sm:col-span-1 sm:col-start-2">
+            <nav aria-label="Elsewhere" class="col-span-2 flex flex-wrap gap-x-4 gap-y-0 sm:col-span-1 sm:col-start-2">
               <a
                 v-for="link in personalLinks"
                 :key="link.label"
                 :href="link.href"
-                class="group inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-sm text-sm font-medium text-teal-800 hover:text-teal-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-600 dark:text-teal-300 dark:hover:text-teal-100 dark:focus-visible:outline-teal-300"
+                class="group inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-sm text-sm font-medium text-teal-800 hover:text-teal-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-600 dark:text-teal-300 dark:hover:text-teal-100 dark:focus-visible:outline-teal-300"
               >
                 <span class="underline decoration-current underline-offset-4 group-hover:decoration-2">{{ link.label }}</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
