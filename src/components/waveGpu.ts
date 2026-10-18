@@ -1,3 +1,5 @@
+import { wavePalettes } from './wavePalette'
+
 export interface GpuWaveFrame {
   width: number
   height: number
@@ -126,16 +128,16 @@ export function createWaveGpu(canvas: HTMLCanvasElement): WaveGpu | null {
         context.viewport(0, 0, width, height)
       },
       draw(frame) {
+        const colors = frame.dark ? wavePalettes.dark : wavePalettes.light
         context.clear(context.COLOR_BUFFER_BIT)
         context.uniform2f(locations.size!, frame.width, frame.height)
         context.uniform4f(locations.signal!, frame.frequency, frame.phase, frame.amplitude, frame.ySteps)
         context.uniform1f(locations.strength!, frame.quantizeY)
         const count = Math.ceil(frame.width - 16)
         context.uniform1f(locations.segments!, count)
-        context.uniform1f(locations.strokeWidth!, 1.5)
+        context.uniform1f(locations.strokeWidth!, colors.strokeWidth)
         context.uniform2f(locations.range!, 0, 1)
-        if (frame.dark) context.uniform4f(locations.color!, 103 / 255, 212 / 255, 192 / 255, 1)
-        else context.uniform4f(locations.color!, 23 / 255, 107 / 255, 96 / 255, 1)
+        context.uniform4f(locations.color!, ...colors.waveRgb, 1)
         const multiplier = frame.quantizeY === 1 ? 2 : 1
         context.drawArraysInstanced(context.TRIANGLES, 0, 6, count * multiplier)
         if (frame.highlight) {
@@ -143,8 +145,7 @@ export function createWaveGpu(canvas: HTMLCanvasElement): WaveGpu | null {
           context.uniform1f(locations.segments!, segments)
           context.uniform1f(locations.strokeWidth!, 2.5)
           context.uniform2f(locations.range!, 0.5 - 0.5 / frame.frequency, 0.5 + 0.5 / frame.frequency)
-          if (frame.dark) context.uniform4f(locations.color!, 240 / 255, 199 / 255, 120 / 255, frame.guideOpacity)
-          else context.uniform4f(locations.color!, 146 / 255, 96 / 255, 14 / 255, frame.guideOpacity)
+          context.uniform4f(locations.color!, ...colors.markerRgb, frame.guideOpacity)
           context.drawArraysInstanced(context.TRIANGLES, 0, 6, segments * multiplier)
         }
       },

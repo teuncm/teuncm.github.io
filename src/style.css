@@ -2,7 +2,40 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-inset: var(--inset);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-heading: var(--heading);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+}
+
 @layer base {
+  :root {
+    --page: #ccc9c1;
+    --surface: #d5d2ca;
+    --inset: #c5c3b9;
+    --line: #b9b9ad;
+    --ink: #3d4943;
+    --heading: #2e3a34;
+    --muted: #505c54;
+    --subtle: #566159;
+  }
+
+  html.dark {
+    --page: #0a0a0a;
+    --surface: #171717;
+    --inset: #262626;
+    --line: #262626;
+    --ink: #d4d4d4;
+    --heading: #fafafa;
+    --muted: #a3a3a3;
+    --subtle: #a3a3a3;
+  }
+
   html {
     scroll-behavior: smooth;
   }
@@ -10,11 +43,7 @@
   body {
     margin: 0;
     min-width: 320px;
-    background: #fafafa;
-  }
-
-  html.dark body {
-    background: #0a0a0a;
+    background: var(--page);
   }
 
   @media (prefers-reduced-motion: reduce) {

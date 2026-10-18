@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { createWaveGpu, type WaveGpu } from './waveGpu'
+import { wavePalettes } from './wavePalette'
 
 const props = defineProps<{ dark: boolean }>()
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -100,16 +101,17 @@ function draw() {
   for (let i = 0; i <= sampleRate; i++) sampleHeights[i] = y(i / sampleRate)
   if (gpu) gpu.draw({ width, height, frequency, phase, amplitude: amplitudeRatio, ySteps,
     quantizeY, dark: props.dark, highlight: stage === 'y' && returningToSmooth, guideOpacity })
-  const ink = props.dark ? '#67d4c0' : '#176b60'
+  const colors = props.dark ? wavePalettes.dark : wavePalettes.light
+  const ink = colors.wave
   ctx.clearRect(0, 0, width, height)
 
   // Only the horizontal zero axis and the vertical center axis.
   ctx.lineWidth = 1
-  ctx.strokeStyle = props.dark ? '#3a4647' : '#c3cfcc'
+  ctx.strokeStyle = colors.axis
   if (axes) ctx.stroke(axes)
 
   // Draw stems as a single path. Samples always sit on the current signal.
-  ctx.strokeStyle = props.dark ? '#67d4c033' : '#176b602b'
+  ctx.strokeStyle = colors.stems
   ctx.beginPath()
   for (let i = 0; i <= sampleRate; i++) {
     const t = i / sampleRate
@@ -124,7 +126,7 @@ function draw() {
     if (curveHeights.length !== steps + 1) curveHeights = new Float64Array(steps + 1)
     for (let i = 0; i <= steps; i++) curveHeights[i] = y(i / steps)
     ctx.strokeStyle = ink
-    ctx.lineWidth = 1.5
+    ctx.lineWidth = colors.strokeWidth
     ctx.lineJoin = 'round'
     ctx.beginPath()
     for (let i = 0; i <= steps; i++) {
@@ -138,20 +140,20 @@ function draw() {
     }
     ctx.stroke()
   }
-  ctx.fillStyle = props.dark ? '#b4dbd1' : '#176b60'
+  ctx.fillStyle = colors.sample
   ctx.beginPath()
   for (let i = 0; i <= sampleRate; i++) {
     const t = i / sampleRate
-    ctx.moveTo(x(t) + 2, sampleHeights[i]!)
-    ctx.arc(x(t), sampleHeights[i]!, 2, 0, tau)
+    ctx.moveTo(x(t) + colors.sampleRadius, sampleHeights[i]!)
+    ctx.arc(x(t), sampleHeights[i]!, colors.sampleRadius, 0, tau)
   }
   ctx.fill()
 
   ctx.save()
   ctx.globalAlpha = guideOpacity
-  const markerInk = props.dark ? '#f0c778' : '#92600e'
+  const markerInk = colors.marker
   ctx.strokeStyle = markerInk
-  ctx.fillStyle = props.dark ? '#0d1112' : '#fafafa'
+  ctx.fillStyle = colors.background
   ctx.lineWidth = 2
   if (stage === 'frequency') {
     // The two peaks stay symmetric about the fixed trough at the plot center.
@@ -360,7 +362,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="relative mt-8 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-[#0d1112]">
+  <div
+    class="relative mt-8 overflow-hidden rounded-2xl border border-line"
+    :style="{ backgroundColor: (dark ? wavePalettes.dark : wavePalettes.light).background }"
+  >
     <canvas ref="gpuCanvas" aria-hidden="true" class="pointer-events-none absolute inset-0 h-full w-full" />
     <canvas
       ref="canvas"
