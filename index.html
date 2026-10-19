@@ -16,7 +16,7 @@
     />
     <meta
       name="description"
-      content="Teun Mathijssen (Teun M.), MSc student at the University of Amsterdam. Signal processing, AI, language and music, with a live sine wave demo, code and DJ mixes."
+      content="Teun Mathijssen (Teun M.), MSc student at the University of Amsterdam. AI, signal processing and music — explore my code, wave demo and Tune:M DJ showcase."
     />
     <link rel="canonical" href="https://teuncm.nl/" />
     <meta name="author" content="Teun Mathijssen" />
@@ -29,7 +29,7 @@
     <meta property="og:title" content="Teun Mathijssen (Teun M.) | Signal Processing &amp; AI" />
     <meta
       property="og:description"
-      content="MSc student at the University of Amsterdam. AI, language, signal processing and music — find my code, mixes and profiles."
+      content="MSc student at the University of Amsterdam. AI, signal processing and music, plus mixes and live performances as Tune:M."
     />
     <meta property="og:image" content="https://teuncm.nl/portrait.webp" />
     <meta property="og:image:type" content="image/webp" />
@@ -42,7 +42,7 @@
     <meta name="twitter:title" content="Teun Mathijssen (Teun M.) | Signal Processing &amp; AI" />
     <meta
       name="twitter:description"
-      content="MSc student at the University of Amsterdam. AI, language, signal processing and music — find my code, mixes and profiles."
+      content="MSc student at the University of Amsterdam. AI, signal processing and music, plus mixes and live performances as Tune:M."
     />
     <meta name="twitter:image" content="https://teuncm.nl/portrait.webp" />
     <meta name="twitter:image:alt" content="Portrait of Teun Mathijssen" />
@@ -58,6 +58,11 @@
             "name": "Teun Mathijssen",
             "alternateName": ["Teun M.", "Teun M", "teuncm"],
             "inLanguage": "en",
+            "hasPart": [
+              { "@id": "https://teuncm.nl/#profile" },
+              { "@id": "https://teuncm.nl/signal-processing/#article" },
+              { "@id": "https://teuncm.nl/dj/#portfolio" }
+            ],
             "publisher": { "@id": "https://teuncm.nl/#person" }
           },
           {
@@ -75,10 +80,12 @@
             "name": "Teun Mathijssen",
             "givenName": "Teun",
             "familyName": "Mathijssen",
-            "alternateName": ["Teun M.", "Teun M", "teuncm"],
+            "alternateName": ["Teun M.", "Teun M", "teuncm", "Tune:M"],
             "url": "https://teuncm.nl/",
             "image": "https://teuncm.nl/portrait.webp",
-            "description": "MSc student at the University of Amsterdam, interested in tech, AI, language, signal processing and music.",
+            "description": "MSc student at the University of Amsterdam, interested in tech, AI, language, signal processing and music. DJ alias: Tune:M.",
+            "mainEntityOfPage": { "@id": "https://teuncm.nl/#profile" },
+            "subjectOf": { "@id": "https://teuncm.nl/dj/#portfolio" },
             "knowsAbout": ["Signal processing", "Artificial intelligence", "Language", "Music"],
             "affiliation": {
               "@type": "CollegeOrUniversity",
@@ -89,9 +96,17 @@
               "https://github.com/teuncm",
               "https://www.linkedin.com/in/teun-mathijssen/",
               "https://soundcloud.com/tune_m",
-              "https://www.instagram.com/dj_tune_m/",
-              "https://teuncm.github.io/dj/"
+              "https://www.instagram.com/dj_tune_m/"
             ]
+          },
+          {
+            "@type": "ImageGallery",
+            "@id": "https://teuncm.nl/dj/#portfolio",
+            "url": "https://teuncm.nl/dj/",
+            "name": "Tune:M (Teun Mathijssen) | DJ Portfolio & Bookings",
+            "inLanguage": "en",
+            "about": { "@id": "https://teuncm.nl/#person" },
+            "isPartOf": { "@id": "https://teuncm.nl/#website" }
           }
         ]
       }

@@ -18,6 +18,12 @@ The build also generates `/signal-processing/index.html` from
 TechArticle and breadcrumb metadata. The article's JavaScript is loaded only on
 that page. Its CSS is included in the initial HTML for readers without JavaScript.
 The homepage links to it and the sitemap includes both pages.
+The sitemap also lists the separately deployed DJ showcase at
+`https://teuncm.nl/dj/`. Its source and deployment are independent of this build;
+this repository supplies the homepage link and root sitemap entry. The profile
+structured data links Tune:M to Teun Mathijssen and the DJ portfolio using the
+same entity IDs as the showcase. Keep the canonical `/dj/` URL in links and
+metadata instead of the old GitHub Pages address.
 
 All components use Composition API. `vite.config.ts` disables unused Vue Options
 API support in the browser bundle; revisit that flag before adding a library

@@ -12,11 +12,11 @@ const SignalProcessing = defineAsyncComponent(() => import('./components/SignalP
 
 const portraitSrcset = `${portrait144} 144w, ${portrait256} 256w, ${portrait352} 352w, ${portrait512} 512w`
 const personalLinks = [
+  { label: 'Tune:M DJ showcase', href: 'https://teuncm.nl/dj/' },
   { label: 'GitHub', href: 'https://github.com/teuncm' },
   { label: 'LinkedIn', href: 'https://www.linkedin.com/in/teun-mathijssen/' },
   { label: 'SoundCloud', href: 'https://soundcloud.com/tune_m' },
   { label: 'Instagram', href: 'https://www.instagram.com/dj_tune_m/' },
-  { label: 'DJ showcase', href: 'https://teuncm.github.io/dj/' },
 ]
 </script>
 
