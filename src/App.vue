@@ -12,11 +12,12 @@ const SignalProcessing = defineAsyncComponent(() => import('./components/SignalP
 
 const portraitSrcset = `${portrait144} 144w, ${portrait256} 256w, ${portrait352} 352w, ${portrait512} 512w`
 const personalLinks = [
-  { label: 'Tune:M DJ showcase', href: 'https://teuncm.nl/dj/' },
-  { label: 'GitHub', href: 'https://github.com/teuncm' },
-  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/teun-mathijssen/' },
-  { label: 'SoundCloud', href: 'https://soundcloud.com/tune_m' },
-  { label: 'Instagram', href: 'https://www.instagram.com/dj_tune_m/' },
+  { label: 'Tune:M DJ showcase', href: 'https://teuncm.nl/dj/', rel: 'me' },
+  { label: 'GitHub', href: 'https://github.com/teuncm', rel: 'me' },
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/teun-mathijssen/', rel: 'me' },
+  { label: 'SoundCloud', href: 'https://soundcloud.com/tune_m', rel: 'me' },
+  { label: 'Instagram', href: 'https://www.instagram.com/dj_tune_m/', rel: 'me' },
+  { label: 'Fourier Grid', href: 'https://teuncm.nl/fourier-grid/' },
 ]
 </script>
 
@@ -62,10 +63,10 @@ const personalLinks = [
           <p class="col-span-2 max-w-2xl text-base leading-7 text-ink sm:col-span-1 sm:col-start-2 sm:text-lg">
             Teun Mathijssen — MSc student at the University of Amsterdam, interested in all things tech, AI, language, signal processing and music.
           </p>
-          <nav aria-label="Elsewhere" class="col-span-2 flex flex-wrap gap-x-4 gap-y-0 sm:col-span-1 sm:col-start-2">
+          <nav aria-label="Projects and profiles" class="col-span-2 flex flex-wrap gap-x-4 gap-y-0 sm:col-span-1 sm:col-start-2">
             <a
               v-for="link in personalLinks"
-              rel="me"
+              :rel="link.rel"
               :key="link.label"
               :href="link.href"
               class="group inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-sm text-sm font-medium text-teal-800 hover:text-teal-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-600 dark:text-teal-300 dark:hover:text-teal-100 dark:focus-visible:outline-teal-300"

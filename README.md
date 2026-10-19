@@ -24,6 +24,18 @@ this repository supplies the homepage link and root sitemap entry. The profile
 structured data links Tune:M to Teun Mathijssen and the DJ portfolio using the
 same entity IDs as the showcase. Keep the canonical `/dj/` URL in links and
 metadata instead of the old GitHub Pages address.
+Fourier Grid is another separately deployed project, at
+`https://teuncm.nl/fourier-grid/`. It is linked from the homepage and included in
+the root sitemap and site graph. The source of each project controls its own
+page title, canonical URL, readable HTML, and link back to the homepage.
+
+Google chooses sitelinks (the shortcuts below a main search result)
+automatically. There is no markup to force a particular page or order. Keep
+important pages linked through normal navigation, use descriptive titles and
+link text, and include their canonical URLs in the sitemap. After publishing,
+use a Search Console domain property for `teuncm.nl`, submit the root sitemap,
+and request indexing for `/`, `/dj/`, and `/fourier-grid/`. Indexing requests do
+not guarantee indexing or sitelinks.
 
 All components use Composition API. `vite.config.ts` disables unused Vue Options
 API support in the browser bundle; revisit that flag before adding a library
