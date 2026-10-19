@@ -18,7 +18,7 @@ import WavePlayground from './WavePlayground.vue'
         details that make the changes easier to see.
       </p>
       <nav aria-label="On this page" class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted">
-        <a v-for="section in ['Frequency', 'Phase', 'Amplitude', 'Quantization', 'Sampling', 'Chorus']" :key="section" :href="`#${section.toLowerCase()}`" class="underline underline-offset-4 hover:text-heading">{{ section }}</a>
+        <a v-for="section in ['Frequency', 'Phase', 'Amplitude', 'Quantization', 'Sampling', 'Chorus', 'Fourier']" :key="section" :href="`#${section.toLowerCase()}`" class="underline underline-offset-4 hover:text-heading">{{ section }}</a>
       </nav>
     </header>
 
@@ -94,6 +94,28 @@ import WavePlayground from './WavePlayground.vue'
         <p>This is a visual demonstration of interference. An <a href="https://docs.juce.com/master/classjuce_1_1dsp_1_1Chorus.html">audio chorus</a> usually mixes a signal
           with a short, modulated delay; the demo uses a phase sweep instead. When quantization is
           active, each copy is quantized before the two are added.</p>
+      </section>
+
+      <section aria-labelledby="fourier">
+        <h2 id="fourier">From adding waves to Fourier transforms</h2>
+        <p>The chorus transition adds two waves together. Fourier analysis asks the reverse
+          question: which waves make up a given signal? For a finite set of samples, the discrete
+          Fourier transform (DFT) gives a set of complex frequency coefficients. Their magnitudes
+          tell you how strongly each component contributes; their phases tell you how the
+          components line up.</p>
+        <p>Quantizing a periodic sine introduces harmonics at multiples of its original frequency.
+          Those extra components describe the stepped shape. The frequency-domain view shows
+          which components are present, while the time-domain view shows their combined result.</p>
+        <p>The <a href="https://www.dspguide.com/ch24/5.htm">two-dimensional Fourier transform</a>
+          applies the same idea to a grid of values. Frequency now has horizontal and vertical
+          components: together they determine the spacing and orientation of sinusoidal stripe
+          patterns. Here, frequency measures variation across space rather than time. The inverse
+          transform adds the patterns together to reconstruct the grid.</p>
+        <p>In <a href="https://teuncm.nl/fourier-grid/">Fourier Grid</a>, you can draw in spatial
+          or frequency space and see the corresponding 2D transform. Its real, imaginary, magnitude
+          and phase views expose the same quantities discussed above. Try drawing a repeating
+          pattern, then editing its frequency components to see how the reconstructed pattern
+          changes.</p>
       </section>
 
       <section aria-labelledby="rendering">
